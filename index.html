@@ -1043,7 +1043,9 @@
   }
 
   // ====== CACHE local (para mostrar algo instantáneo al abrir) ======
-  function cacheKey(){ return "cp_cache_" + state.year + "_" + MESES[state.monthIdx]; }
+  // Sufijo "_ivan" por la misma razón que API_URL/API_TOKEN arriba: este
+  // cache también es localStorage compartido por origen con la app de Angel.
+  function cacheKey(){ return "cp_cache_ivan_" + state.year + "_" + MESES[state.monthIdx]; }
   function saveCache(json){ try{ localStorage.setItem(cacheKey(), JSON.stringify(json)); }catch(e){} }
   function loadCache(){ try{ var v = localStorage.getItem(cacheKey()); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
 
