@@ -1,0 +1,3058 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1c1c">
+<title>Cuentas Ivan</title>
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+
+<!-- Para que "Agregar a pantalla de inicio" en iPhone abra sin barra de Safari -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cuentas Ivan">
+<style>
+  :root{
+    --bg:#f2f2f2;
+    --surface:#ffffff;
+    --surface-2:#e9e9e9;
+    --text:#141414;
+    /* #5a5a5a da ~7:1 sobre blanco, cómodo para texto chico (11-12px). */
+    --text-dim:#5a5a5a;
+    --accent:#1c1c1c;
+    --accent-2:#000000;
+    --accent-soft:#e4e4e4;
+    /* Escala de negros a propósito (pedido de Angel para la app de Ivan, 2026-09-28):
+       nada de verde/ámbar/rojo — el estado (ok/warn/over) se lee por qué tan oscuro
+       es el tono, no por el matiz. Los tres pasan AA sobre blanco. */
+    --mint:#444444;
+    --green:#444444;
+    --green-soft:#ececec;
+    --red:#000000;
+    --red-soft:#cfcfcf;
+    --amber:#2b2b2b;
+    --amber-soft:#dedede;
+    --border:#dcdcdc;
+    --shadow:0 2px 14px rgba(0,0,0,0.08);
+    --radius:22px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    font-synthesis: none;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d0d0d;
+      --surface:#1a1a1a;
+      --surface-2:#242424;
+      --text:#f2f2f2;
+      --text-dim:#a3a3a3;
+      --accent:#e6e6e6;
+      --accent-2:#ffffff;
+      --accent-soft:#2a2a2a;
+      /* Mismo criterio invertido: en oscuro, más claro/blanco = más urgente. */
+      --mint:#9a9a9a;
+      --green:#9a9a9a;
+      --green-soft:#202020;
+      --red:#ffffff;
+      --red-soft:#333333;
+      --amber:#cfcfcf;
+      --amber-soft:#282828;
+      --border:#2a2a2a;
+      --shadow:0 2px 16px rgba(0,0,0,0.5);
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior-y:none;
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    background:var(--bg);
+  }
+
+  /* Chip de ícono: el color comunica cómo va vs. su presupuesto */
+  .cat-ico{
+    display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+    width:40px;height:40px;border-radius:13px;
+    background:var(--accent-soft);color:var(--accent);
+  }
+  .cat-ico svg{width:20px;height:20px;}
+  .cat-ico.ok{background:var(--green-soft);color:var(--green);}
+  .cat-ico.warn{background:var(--amber-soft);color:var(--amber);}
+  .cat-ico.over{background:var(--red-soft);color:var(--red);}
+  .cat-ico.sm{width:34px;height:34px;border-radius:11px;}
+  .cat-ico.sm svg{width:17px;height:17px;}
+
+  /* ---------- Header claro ---------- */
+  header{
+    position:sticky;top:0;z-index:20;
+    background:var(--bg);
+    color:var(--text);
+    padding:calc(14px + env(safe-area-inset-top,0px)) 16px 10px;
+  }
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;}
+  .app-name{font-size:26px;font-weight:800;letter-spacing:-.7px;}
+  .icon-btn{
+    background:var(--surface);border:1px solid var(--border);color:var(--text-dim);
+    width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex:0 0 auto;
+  }
+  .icon-btn:active{background:var(--surface-2);}
+
+  /* Los botones chicos del header (36px y 30px) se ven mejor compactos, pero
+     tocar 30px en el celular falla. Se les extiende el área táctil a 44x44 con
+     un pseudo-elemento invisible, sin cambiar cómo se ven. */
+  .icon-btn, .period-nav > button, .period-switch button{position:relative;}
+  .icon-btn::after, .period-nav > button::after, .period-switch button::after{
+    content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:44px;height:44px;
+  }
+  .refresh-btn.spinning svg{animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* Período: una sola fila compacta (‹ mes › + Mes/Año) */
+  .period-nav{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:6px 8px;
+  }
+  .period-nav > button{
+    background:var(--surface-2);border:none;color:var(--accent);
+    width:30px;height:30px;border-radius:10px;flex:0 0 auto;
+    font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .period-label{
+    font-size:15px;font-weight:800;text-transform:capitalize;letter-spacing:-.2px;
+    flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .period-switch{
+    display:flex;background:var(--surface-2);border-radius:11px;padding:3px;flex:0 0 auto;
+  }
+  .period-switch button{
+    border:none;background:transparent;color:var(--text-dim);font-family:inherit;
+    padding:5px 11px;border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;
+  }
+  .period-switch button.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.10);}
+
+  /* ---------- Tabs (Resumen / Historial) ---------- */
+  .view-tabs{display:none;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---------- Cards ---------- */
+  /* El extra abajo deja aire para la barra de navegación y el FAB flotante. */
+  main{flex:1;padding:6px 16px calc(150px + var(--safe-bottom));}
+
+  /* Tarjeta hero con anillo de progreso */
+  .hero-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px 18px 16px;margin-bottom:16px;
+  }
+  .hero-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .hero-title{font-size:15px;font-weight:800;letter-spacing:-.2px;}
+  .hero-badge{
+    font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-soft);
+    padding:4px 9px;border-radius:20px;white-space:nowrap;
+  }
+  .hero-badge.over{color:var(--red);background:var(--red-soft);}
+  .hero-badge.warn{color:var(--amber);background:var(--amber-soft);}
+  .ring-wrap{display:flex;justify-content:center;padding:8px 0 2px;}
+  .ring{position:relative;width:172px;height:172px;}
+  .ring svg{transform:rotate(-90deg);display:block;}
+  .ring-fill{transition:stroke-dashoffset .6s ease;}
+  .ring-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring-pct{font-size:37px;font-weight:800;letter-spacing:-1.6px;line-height:1;color:var(--accent);}
+  .ring-pct.sm{font-size:21px;letter-spacing:-.7px;}
+  .ring-lbl{font-size:11.5px;color:var(--text-dim);font-weight:600;margin-top:4px;}
+
+  .tri{display:flex;margin-top:14px;padding-top:15px;border-top:1px solid var(--border);}
+  .tri > div{flex:1;text-align:center;position:relative;min-width:0;padding:0 3px;}
+  .tri > div + div::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:1px;background:var(--border);}
+  .tri .v{font-size:14.5px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tri .v.pos{color:var(--green);} .tri .v.neg{color:var(--red);} .tri .v.acc{color:var(--accent);}
+  .tri .l{font-size:10.5px;color:var(--text-dim);font-weight:600;margin-top:3px;}
+
+  /* Mini tarjetas 2x2 */
+  .stat-scroll{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin:0 0 16px;
+  }
+  .stat-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:18px;
+    padding:13px 14px;box-shadow:var(--shadow);min-width:0;
+  }
+  .stat-card .label{
+    font-size:10.5px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .stat-card .value{font-size:18px;font-weight:800;margin-top:6px;letter-spacing:-.5px;}
+  .stat-card .value.pos{color:var(--green);}
+  .stat-card .value.neg{color:var(--red);}
+
+  .section-title{
+    font-size:16px;font-weight:800;color:var(--text);text-transform:none;letter-spacing:-.3px;
+    margin:20px 2px 11px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .filter-row{display:flex;gap:8px;margin-bottom:12px;}
+  .filter-row select{
+    flex:1;padding:9px 10px;border-radius:12px;border:1.5px solid var(--border);
+    background:var(--surface);color:var(--text);font-size:12.5px;font-weight:600;font-family:inherit;
+  }
+  .section-title span.tag{
+    background:var(--surface-2);color:var(--text-dim);font-size:10.5px;font-weight:700;
+    padding:3px 9px;border-radius:20px;text-transform:none;letter-spacing:0;flex:0 0 auto;
+  }
+  .section-title .link-btn{
+    background:none;border:none;color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer;
+    text-transform:none;letter-spacing:0;font-family:inherit;flex:0 0 auto;
+  }
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:4px 16px;
+  }
+
+  .cat-group-title{
+    font-size:11.5px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;
+    padding:13px 2px 4px;
+  }
+
+  /* Fila de categoría: chip de color + monto/de-cuánto + barra + pie */
+  .cat-row{padding:14px 0;border-bottom:1px solid var(--border);}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-row-top{display:flex;align-items:center;gap:11px;}
+  .cat-row-body{flex:1;min-width:0;}
+  .cat-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+  .cat-name{font-size:14.5px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cat-amount{font-size:15px;font-weight:800;white-space:nowrap;letter-spacing:-.3px;}
+  .cat-of{font-size:11px;color:var(--text-dim);font-weight:600;white-space:nowrap;text-align:right;margin-top:2px;}
+  .cat-sub{font-size:11.5px;color:var(--text-dim);margin-top:3px;font-weight:500;}
+  .bar-track{height:7px;border-radius:6px;background:var(--surface-2);overflow:hidden;margin-top:11px;}
+  .bar-fill{height:100%;border-radius:6px;background:var(--green);transition:width .5s ease;}
+  .bar-fill.over{background:var(--red);}
+  .bar-fill.warn{background:var(--amber);}
+  .cat-foot{
+    display:flex;justify-content:space-between;gap:8px;margin-top:7px;
+    font-size:11.5px;color:var(--text-dim);font-weight:600;
+  }
+  .cat-foot .over{color:var(--red);font-weight:700;}
+
+  .empty-note{color:var(--text-dim);font-size:13px;text-align:center;padding:18px 8px;}
+
+  .skeleton{
+    background:linear-gradient(90deg,var(--surface-2) 25%,var(--border) 37%,var(--surface-2) 63%);
+    background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:10px;
+  }
+  @keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+
+  /* ---------- Historial ---------- */
+  .mov-row{
+    padding:13px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;
+    cursor:pointer;
+  }
+  .mov-row:last-child{border-bottom:none;}
+  .mov-body{flex:1;min-width:0;}
+  .mov-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+  .mov-name{font-size:14px;font-weight:700;letter-spacing:-.2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mov-amount{font-size:14.5px;font-weight:800;white-space:nowrap;letter-spacing:-.3px;}
+  .mov-sub{font-size:11.5px;color:var(--text-dim);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;font-weight:600;}
+  .mov-sub .pill{background:var(--surface-2);padding:2px 8px;border-radius:20px;}
+  .edit-chevron{color:var(--text-dim);font-size:15px;flex:0 0 auto;}
+
+  /* ---------- Bottom nav ---------- */
+  nav.bottom{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    max-width:480px;margin:0 auto;
+    background:var(--surface);border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-around;
+    padding:10px 10px calc(10px + var(--safe-bottom));
+  }
+  nav.bottom button{
+    background:none;border:none;color:var(--text-dim);display:flex;flex-direction:column;
+    align-items:center;gap:4px;font-size:9.5px;font-weight:700;cursor:pointer;padding:0;
+    flex:1;min-width:0;font-family:inherit;
+  }
+  nav.bottom button .nav-pill{
+    display:flex;align-items:center;justify-content:center;
+    padding:5px 14px;border-radius:14px;transition:background .18s ease;
+  }
+  nav.bottom button.active{color:var(--accent);}
+  nav.bottom button.active .nav-pill{background:var(--accent-soft);}
+  /* FAB: píldora con texto, dice qué hace y tapa menos la lista.
+     Va como `nav.bottom .fab` porque `nav.bottom button` le gana en
+     especificidad y le pisaba el padding y el tamaño de fuente. */
+  nav.bottom .fab{
+    position:fixed;right:16px;bottom:calc(78px + var(--safe-bottom));z-index:31;
+    border-radius:26px;padding:13px 19px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:#fff;border:none;font-size:14px;font-weight:700;font-family:inherit;line-height:1;
+    display:flex;flex-direction:row;align-items:center;gap:7px;
+    box-shadow:0 8px 22px rgba(0,0,0,0.38);
+    cursor:pointer;flex:none;width:auto;min-height:46px;
+  }
+  nav.bottom .fab svg{width:17px;height:17px;flex:0 0 auto;}
+  nav.bottom .fab:active{transform:scale(.97);}
+
+  /* Tarjetas de persona (deudas) */
+  .people-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px;}
+  .person-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);
+    padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;min-width:0;
+    transition:border-color .15s ease;
+  }
+  .person-card.active{border-color:var(--accent);}
+  .person-avatar{
+    width:34px;height:34px;border-radius:11px;background:var(--surface-2);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto;
+  }
+  .person-card .pv{font-size:14.5px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .person-card .pv.pos{color:var(--green);} .person-card .pv.neg{color:var(--red);}
+  .person-card .pl{font-size:10.5px;color:var(--text-dim);font-weight:600;margin-top:1px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .person-body{min-width:0;}
+
+  /* Tarjeta de balance destacada */
+  .balance-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px;
+  }
+  .balance-card .who{font-size:12px;color:var(--text-dim);font-weight:700;}
+  .balance-card .amt{font-size:26px;font-weight:800;letter-spacing:-1px;margin-top:5px;line-height:1.15;}
+  .balance-card .amt.pos{color:var(--green);} .balance-card .amt.neg{color:var(--red);}
+  .balance-card .note{font-size:12.5px;color:var(--text-dim);margin-top:7px;line-height:1.5;}
+
+  /* ---------- Sheet / Modal ---------- */
+  .backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:40;
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .backdrop.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:480px;margin:0 auto;
+    background:var(--surface);border-radius:24px 24px 0 0;
+    padding:10px 20px calc(24px + var(--safe-bottom));
+    transform:translateY(105%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+    max-height:88vh;overflow-y:auto;
+  }
+  .sheet.show{transform:translateY(0);}
+  .sheet-handle{width:38px;height:4px;background:var(--border);border-radius:4px;margin:6px auto 14px;}
+  .sheet h2{font-size:18px;margin:0 0 14px;}
+
+  .type-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .type-tabs button{
+    flex:1 1 auto;min-width:70px;min-height:44px;border:1.5px solid var(--border);background:var(--surface);
+    color:var(--text-dim);padding:9px 8px;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;
+    font-family:inherit;
+  }
+  .type-tabs button.active{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .type-hint{
+    font-size:12px;color:var(--text-dim);line-height:1.5;margin:-8px 2px 4px;
+  }
+  .type-hint:empty{display:none;}
+
+  .chip-list{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 18px;}
+  .chip-list button{
+    border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim);
+    padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+  .chip-list button.active{border-color:var(--accent);background:var(--accent);color:#fff;}
+
+  label{display:block;font-size:12px;font-weight:700;color:var(--text-dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.3px;}
+  input,select{
+    width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);
+    background:var(--surface-2);color:var(--text);font-size:15px;font-family:inherit;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--accent);}
+  .row2{display:flex;gap:10px;}
+  .row2>div{flex:1;}
+
+  .submit-btn{
+    width:100%;margin-top:20px;padding:14px;border:none;border-radius:14px;
+    background:linear-gradient(160deg,var(--accent),var(--accent-2));color:#fff;
+    font-size:15px;font-weight:700;cursor:pointer;
+  }
+  .submit-btn:disabled{opacity:.6;}
+  /* Separado del submit y en rojo a propósito: es destructivo e irreversible. */
+  .delete-btn{
+    width:100%;margin-top:10px;padding:13px;border:1.5px solid var(--red);border-radius:14px;
+    background:none;color:var(--red);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;
+  }
+  .delete-btn:disabled{opacity:.6;}
+  .ghost-btn{
+    width:100%;margin-top:10px;padding:12px;border:1.5px dashed var(--border);border-radius:14px;
+    background:none;color:var(--accent);font-size:13.5px;font-weight:700;cursor:pointer;
+  }
+  .link-inline{background:none;border:none;color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer;padding:0;margin-top:6px;}
+
+  .budget-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:16px;}
+  .budget-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);
+    padding:12px;min-width:0;
+  }
+  .budget-bar-top{display:flex;align-items:flex-start;gap:7px;margin-bottom:7px;}
+  .budget-bar-name{flex:1;min-width:0;font-size:12px;font-weight:600;line-height:1.25;word-break:break-word;padding-top:2px;}
+  .budget-bar-pct{font-size:11px;font-weight:700;color:var(--text-dim);flex:0 0 auto;padding-top:2px;}
+  .budget-bar-track{height:8px;border-radius:6px;background:var(--surface-2);overflow:hidden;}
+  .budget-bar-fill{height:100%;border-radius:6px;transition:width .4s ease;}
+  .budget-card .cat-sub{white-space:normal;}
+  .budget-bar-edit{display:flex;align-items:center;gap:6px;margin-top:8px;}
+  .budget-bar-edit input{flex:1;min-width:0;padding:7px 8px;font-size:12.5px;}
+  .budget-bar-save{
+    flex:0 0 auto;width:32px;height:32px;border-radius:9px;border:none;
+    background:var(--accent);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .budget-bar-save:disabled{opacity:.6;}
+
+  .share-btn{
+    width:100%;margin:0 0 16px;padding:13px;border:none;border-radius:14px;
+    background:linear-gradient(160deg,var(--accent),var(--accent-2));color:#fff;
+    font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .share-btn:disabled{opacity:.6;}
+
+  /* ---------- Ahorro: histórico por año ---------- */
+  .year-row{padding:12px 0;border-bottom:1px solid var(--border);}
+  .year-row:last-child{border-bottom:none;}
+  .year-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px;}
+  .year-label{font-size:14px;font-weight:800;}
+  .year-amount{font-size:14px;font-weight:700;color:var(--green);}
+  .year-track{height:10px;border-radius:6px;background:var(--surface-2);overflow:hidden;}
+  .year-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--mint),var(--accent));transition:width .5s ease;}
+  .year-sub{font-size:11px;color:var(--text-dim);margin-top:5px;display:flex;gap:10px;flex-wrap:wrap;}
+
+  .kpi-note{
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:14px 16px;font-size:13px;line-height:1.5;margin-bottom:6px;
+  }
+  .kpi-note b{color:var(--accent);}
+
+  .mini-months{display:flex;align-items:flex-end;gap:3px;height:54px;padding:10px 0 4px;}
+  .mini-months .mm{flex:1;background:var(--surface-2);border-radius:3px 3px 0 0;min-height:2px;position:relative;}
+  .mini-months .mm.has{background:var(--mint);}
+  .mini-labels{display:flex;gap:3px;padding-bottom:6px;}
+  .mini-labels span{flex:1;text-align:center;font-size:8.5px;color:var(--text-dim);font-weight:700;}
+  /* Meses ya anotados pero todavía por venir (cuotas comprometidas). */
+  .mini-months .mm.fut{background:var(--amber);opacity:.42;}
+  .mini-months .mm.now{box-shadow:0 0 0 2px var(--accent);}
+
+  .presu-total-display{
+    background:var(--surface-2);border-radius:14px;padding:14px 16px;margin:2px 0 4px;
+    display:flex;flex-direction:column;align-items:center;text-align:center;
+  }
+  .presu-total-display .l{font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;}
+  .presu-total-display .v{font-size:25px;font-weight:800;margin-top:4px;color:var(--accent);}
+
+  .presu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+  .presu-item{display:flex;flex-direction:column;gap:4px;}
+  .presu-item span{font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;text-align:center;}
+  .presu-item input{padding:8px 4px;font-size:12.5px;text-align:center;}
+  .presu-hint{font-size:11.5px;color:var(--text-dim);margin:4px 2px 0;line-height:1.4;}
+
+  .toast{
+    position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);
+    background:var(--text);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:13.5px;font-weight:600;
+    z-index:50;opacity:0;transition:all .3s;box-shadow:0 8px 20px rgba(0,0,0,0.25);max-width:88%;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.err{background:var(--red);color:#fff;}
+  .toast.ok{background:var(--green);}
+
+  .close-x{position:absolute;top:14px;right:16px;background:var(--surface-2);border:none;width:30px;height:30px;
+    border-radius:50%;color:var(--text-dim);font-size:16px;cursor:pointer;}
+
+  .setup-overlay{
+    position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;
+    justify-content:center;padding:26px;
+  }
+  .setup-overlay h1{font-size:20px;margin:0 0 6px;}
+  .setup-overlay p{color:var(--text-dim);font-size:13.5px;line-height:1.5;margin:0 0 20px;}
+  .setup-overlay .submit-btn{margin-top:22px;}
+
+  /* =========================================================
+     DESKTOP (>= 900px): layout ancho, sidebar de navegación,
+     grid de dos columnas en vez de todo apilado en una columna
+     angosta flotando en medio de la pantalla.
+     ========================================================= */
+  @media (min-width:900px){
+    body{display:flex;justify-content:center;}
+    #app{
+      max-width:1180px;width:100%;min-height:100vh;
+      display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;
+      column-gap:24px;padding:24px 24px 24px 0;
+    }
+    header{
+      grid-column:1 / -1;grid-row:1;padding:22px 4px 14px;
+      display:flex;align-items:center;justify-content:space-between;gap:24px;
+      background:var(--bg);
+    }
+    .header-top{margin-bottom:0;flex:0 0 auto;}
+    .app-name{font-size:30px;}
+    .period-nav{flex:0 0 auto;min-width:360px;}
+
+    nav.bottom{
+      position:static;grid-column:1;grid-row:2;max-width:none;flex-direction:column;
+      align-items:stretch;justify-content:flex-start;gap:8px;background:transparent;border:none;
+      padding:20px 0 0;height:fit-content;
+    }
+    nav.bottom button{
+      flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 16px;
+      border-radius:14px;background:var(--surface);border:1px solid var(--border);
+      box-shadow:var(--shadow);flex:none;font-size:13.5px;
+    }
+    nav.bottom button .nav-pill{padding:0;background:none;border-radius:0;}
+    nav.bottom button.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+    nav.bottom button.active .nav-pill{background:none;}
+    nav.bottom .fab{
+      position:static;order:-1;margin:0 0 4px;width:100%;height:48px;border-radius:14px;
+      justify-content:center;font-size:14px;
+    }
+
+    main{grid-column:2;grid-row:2;padding:14px 0 40px;}
+    .stat-scroll{
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:0 0 20px;
+    }
+    .hero-card{max-width:520px;}
+    .people-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));}
+    .budget-card-grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+
+    .resumen-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start;}
+
+    .sheet{
+      left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%) scale(.95);
+      width:460px;max-height:85vh;border-radius:24px;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;
+    }
+    .sheet.show{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div>
+      <div class="header-top">
+        <span class="app-name" id="viewTitle">Resumen</span>
+        <div style="display:flex;gap:8px;">
+          <button class="icon-btn" id="settingsBtn" title="Configuración">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button class="icon-btn refresh-btn" id="refreshBtn" title="Actualizar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="period-nav">
+      <button id="prevBtn" aria-label="Período anterior">‹</button>
+      <div class="period-label" id="periodLabel">—</div>
+      <div class="period-switch">
+        <button id="btnMensual" class="active">Mes</button>
+        <button id="btnAnual">Año</button>
+      </div>
+      <button id="nextBtn" aria-label="Período siguiente">›</button>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <div class="view active" id="viewResumen">
+      <div id="resumenHero"></div>
+      <div class="stat-scroll" id="statScroll">
+        <div class="stat-card"><div class="label">Gasto</div><div class="value skeleton" style="height:20px;width:70%">&nbsp;</div></div>
+      </div>
+
+      <div class="section-title">Gasto mes a mes <span class="tag" id="tendenciaTag"></span></div>
+      <div class="card" style="padding:10px 16px;" id="tendenciaCard"></div>
+
+      <div class="section-title">Categorías <button class="link-btn" id="addCatBtn">+ Nueva categoría</button></div>
+      <div class="cat-group-title">Gastos fijos</div>
+      <div class="budget-card-grid" id="catFijos"></div>
+      <div class="cat-group-title">Gastos variables</div>
+      <div class="budget-card-grid" id="catVariables"></div>
+
+      <div class="section-title">Compra de casa <span class="tag">aparte del gasto normal</span></div>
+      <div class="card"><div id="compraCasaCard"></div></div>
+    </div>
+
+    <div class="view" id="viewHistorial">
+      <div class="section-title">Todos los gastos del período <span class="tag" id="historialCount"></span></div>
+      <div class="filter-row">
+        <select id="filtroCategoria"><option value="">Todas las categorías</option></select>
+        <select id="filtroPersona"><option value="">Todas las personas</option></select>
+      </div>
+      <div class="card" id="historialList"></div>
+    </div>
+
+    <div class="view" id="viewCompartidos">
+      <div id="balanceNote"></div>
+      <button type="button" class="share-btn" id="compartirBtn">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4"/><path d="M15.4 6.5l-6.8 4"/></svg>
+        Enviar resumen a Daniela
+      </button>
+      <div class="stat-scroll" id="compartidosStats"></div>
+
+      <div class="section-title"><span>Detalle por categoría <span class="tag">50/50 con Daniela</span></span><button class="link-btn" id="editCompartidasBtn">Editar</button></div>
+      <div class="card" id="compartidosDetalle"></div>
+
+      <div class="section-title">Deudas personales <button class="link-btn" id="addDeudaBtn">+ Movimiento</button></div>
+      <div class="people-grid" id="deudasGrid"></div>
+      <div class="card" id="deudasList"></div>
+    </div>
+
+    <div class="view" id="viewPresupuesto">
+      <div id="presupuestoHero"></div>
+      <div class="stat-scroll" id="presupuestoStats"></div>
+
+      <div class="section-title">Presupuesto por categoría <span class="tag" id="presupuestoAnioTag"></span> <span class="tag">mayor a menor</span></div>
+      <div class="budget-card-grid" id="presupuestoBars"></div>
+    </div>
+
+    <!-- Pestaña "Metas". Los ids internos siguen diciendo "ahorro" porque nació
+         como pestaña de Ahorro (2026-08-23) y ese bloque sigue vivo más abajo;
+         desde el 2026-08-30 la encabeza la lista de metas con objetivo y fecha. -->
+    <div class="view" id="viewAhorro">
+      <div class="section-title">Patrimonio <button class="link-btn" id="addSaldoBtn">+ Cuenta</button></div>
+      <div id="patrimonioHero"></div>
+      <div class="stat-scroll" id="patrimonioStats"></div>
+      <div class="card" id="saldosList"></div>
+
+      <div class="section-title">Mis metas <button class="link-btn" id="addMetaBtn">+ Nueva meta</button></div>
+      <div class="card" id="metasList"></div>
+
+      <div class="section-title">Ahorro del período</div>
+      <div id="ahorroHero"></div>
+      <div class="stat-scroll" id="ahorroStats"></div>
+      <div class="kpi-note" id="ahorroNote"></div>
+
+      <div class="section-title">Ingresos mes a mes <span class="tag" id="ingresosAnioTag"></span></div>
+      <div class="card" style="padding:10px 16px;" id="ingresosMeses"></div>
+
+      <div class="section-title">Ahorro mes a mes <span class="tag" id="ahorroAnioTag"></span></div>
+      <div class="card" style="padding:10px 16px;" id="ahorroMeses"></div>
+
+      <div class="section-title">Ahorro por año <span class="tag" id="ahorroAcumuladoTag"></span></div>
+      <div class="card" style="padding:4px 16px;" id="ahorroPorAnio"></div>
+
+      <div class="section-title">Ganancias extra por año</div>
+      <div class="card" style="padding:4px 16px;" id="gananciasPorAnio"></div>
+    </div>
+
+  </main>
+
+  <nav class="bottom">
+    <button class="active" data-view="viewResumen" id="navResumen">
+      <span class="nav-pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg></span>
+      <span class="nav-label">Resumen</span>
+    </button>
+    <button data-view="viewCompartidos" id="navCompartidos">
+      <span class="nav-pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 19a6.5 6.5 0 0 1 13 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6"/><path d="M18 13.5a6.5 6.5 0 0 1 3.5 5.5"/></svg></span>
+      <span class="nav-label">Compartidos</span>
+    </button>
+    <button class="fab" id="openSheetBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nuevo
+    </button>
+    <button data-view="viewHistorial" id="navHistorial">
+      <span class="nav-pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-7"/></svg></span>
+      <span class="nav-label">Historial</span>
+    </button>
+    <button data-view="viewPresupuesto" id="navPresupuesto">
+      <span class="nav-pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span>
+      <span class="nav-label">Presupuesto</span>
+    </button>
+    <button data-view="viewAhorro" id="navAhorro">
+      <span class="nav-pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/></svg></span>
+      <span class="nav-label">Metas</span>
+    </button>
+  </nav>
+
+  <div class="backdrop" id="backdrop"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="closeSheet">✕</button>
+    <h2 id="sheetTitle">Nuevo movimiento</h2>
+
+    <div class="type-tabs" id="typeTabs">
+      <button class="active" data-type="GASTO">Gasto</button>
+      <button data-type="GANANCIA">Ganancia</button>
+      <button data-type="SUELDO">Sueldo</button>
+      <button data-type="AHORRO">Ahorro</button>
+    </div>
+    <div class="type-hint" id="typeHint"></div>
+
+    <form id="entryForm">
+      <div id="categoriaField">
+        <label>Categoría</label>
+        <select id="fCategoria"></select>
+      </div>
+
+      <label>Valor ($)</label>
+      <input type="text" id="fValor" inputmode="numeric" placeholder="0" required>
+
+      <div id="personaField">
+        <label>¿De quién es?</label>
+        <select id="fPersona"></select>
+      </div>
+
+      <div class="row2" id="bancoCuotaField">
+        <div>
+          <label>Banco</label>
+          <select id="fBanco">
+            <option value="">Sin banco</option>
+          </select>
+          <input type="text" id="fBancoOtro" placeholder="Nombre del banco" style="display:none;margin-top:8px;">
+        </div>
+        <div>
+          <label>Cuota</label>
+          <input type="number" id="fCuota" value="1" min="1">
+        </div>
+      </div>
+
+      <label>Fecha</label>
+      <input type="date" id="fFecha" required>
+
+      <label>Detalle</label>
+      <input type="text" id="fDetalle" placeholder="Opcional">
+
+      <button type="submit" class="submit-btn" id="submitBtn">Guardar</button>
+      <button type="button" class="delete-btn" id="deleteBtn" style="display:none;">Eliminar este gasto</button>
+    </form>
+  </div>
+
+  <div class="backdrop" id="catBackdrop"></div>
+  <div class="sheet" id="catSheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="closeCatSheet">✕</button>
+    <h2>Nueva categoría</h2>
+    <form id="catForm">
+      <label>Nombre</label>
+      <input type="text" id="catNombre" placeholder="Ej: MASCOTA" required>
+
+      <label>Tipo</label>
+      <div class="type-tabs">
+        <button type="button" class="active" data-tipo="VARIABLE">Variable</button>
+        <button type="button" data-tipo="FIJO">Fijo</button>
+      </div>
+
+      <label>Presupuesto mensual (opcional)</label>
+      <input type="text" inputmode="numeric" id="catPresupuesto" placeholder="0">
+
+      <button type="submit" class="submit-btn" id="catSubmitBtn">Crear categoría</button>
+    </form>
+  </div>
+
+  <div class="backdrop" id="deudaBackdrop"></div>
+  <div class="sheet" id="deudaSheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="closeDeudaSheet">✕</button>
+    <h2 id="deudaSheetTitle">Movimiento de deuda</h2>
+    <form id="deudaForm">
+      <label>Persona</label>
+      <select id="dPersona"></select>
+      <input type="text" id="dPersonaOtra" placeholder="Nombre de la persona" style="display:none;margin-top:8px;">
+
+      <label>Tipo de movimiento</label>
+      <div class="type-tabs" id="deudaTipoTabs">
+        <button type="button" class="active" data-tipo="preste">Le presté</button>
+        <button type="button" data-tipo="mePagaron">Me pagó</button>
+        <button type="button" data-tipo="debo">Me prestó</button>
+        <button type="button" data-tipo="pague">Le pagué</button>
+      </div>
+      <div class="cat-sub" id="deudaTipoHint" style="padding:0 0 12px;"></div>
+
+      <label>Monto ($)</label>
+      <input type="text" id="dMonto" inputmode="numeric" placeholder="0" required>
+
+      <label>Fecha</label>
+      <input type="date" id="dFecha" required>
+
+      <label>Detalle</label>
+      <input type="text" id="dDetalle" placeholder="Opcional">
+
+      <button type="submit" class="submit-btn" id="deudaSubmitBtn">Guardar</button>
+      <button type="button" class="delete-btn" id="deudaDeleteBtn" style="display:none;">Eliminar este movimiento</button>
+    </form>
+  </div>
+
+  <div class="backdrop" id="saldoBackdrop"></div>
+  <div class="sheet" id="saldoSheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="closeSaldoSheet">✕</button>
+    <h2 id="saldoSheetTitle">Nueva cuenta</h2>
+    <form id="saldoForm">
+      <label>Nombre</label>
+      <input type="text" id="sCuenta" placeholder="Ej: Cuenta corriente BCI" required>
+
+      <label>Categoría</label>
+      <div class="type-tabs" id="saldoCatTabs">
+        <button type="button" class="active" data-cat="Efectivo">Efectivo</button>
+        <button type="button" data-cat="Inversión">Inversión</button>
+        <button type="button" data-cat="Propiedad">Propiedad</button>
+        <button type="button" data-cat="Vehículo">Vehículo</button>
+        <button type="button" data-cat="Préstamo">Préstamo</button>
+        <button type="button" data-cat="Deuda">Deuda</button>
+      </div>
+      <div class="type-hint" id="saldoCatHint"></div>
+
+      <label>Monto ($)</label>
+      <input type="text" id="sMonto" inputmode="numeric" placeholder="0" required>
+
+      <label>% que es tuyo</label>
+      <div class="presu-hint">100% si es solo tuyo. Si es a medias con Daniela (o alguien más), pon 50 y la app calcula tu parte sola.</div>
+      <input type="text" id="sPctPropio" inputmode="numeric" placeholder="100">
+
+      <label>Detalle (opcional)</label>
+      <input type="text" id="sDetalle" placeholder="Ej: saldo pendiente del crédito">
+
+      <button type="submit" class="submit-btn" id="saldoSubmitBtn">Guardar cuenta</button>
+      <button type="button" class="delete-btn" id="saldoDeleteBtn" style="display:none;">Eliminar esta cuenta</button>
+    </form>
+  </div>
+
+  <div class="backdrop" id="metaBackdrop"></div>
+  <div class="sheet" id="metaSheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="closeMetaSheet">✕</button>
+    <h2 id="metaSheetTitle">Nueva meta</h2>
+    <form id="metaForm">
+      <label>Nombre</label>
+      <input type="text" id="mNombre" placeholder="Ej: Fondo de emergencia" required>
+
+      <label>Tipo de meta</label>
+      <div class="type-tabs" id="metaTipoTabs">
+        <button type="button" class="active" data-tipo="acumular">Acumular</button>
+        <button type="button" data-tipo="deuda">Pagar deuda</button>
+        <button type="button" data-tipo="reducir">Reducir gasto</button>
+      </div>
+      <div class="type-hint" id="metaTipoHint"></div>
+
+      <label id="mOrigenLabel">¿Qué la alimenta?</label>
+      <select id="mOrigen"></select>
+
+      <label id="mObjetivoLabel">Objetivo ($)</label>
+      <input type="text" id="mObjetivo" inputmode="numeric" placeholder="0" required>
+
+      <label>Fecha objetivo (opcional)</label>
+      <div class="presu-hint">Si la pones, la app calcula cuánto necesitas por mes para llegar.</div>
+      <input type="date" id="mFecha">
+
+      <button type="submit" class="submit-btn" id="metaSubmitBtn">Guardar meta</button>
+      <button type="button" class="delete-btn" id="metaDeleteBtn" style="display:none;">Eliminar esta meta</button>
+    </form>
+  </div>
+
+  <div class="backdrop" id="compartidaBackdrop"></div>
+  <div class="sheet" id="compartidaSheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="closeCompartidaSheet">✕</button>
+    <h2>Categorías compartidas con Daniela</h2>
+    <div class="type-hint">Toca para marcar qué categorías se dividen 50/50 con Daniela.</div>
+    <div class="chip-list" id="compartidaChips"></div>
+    <button type="button" class="submit-btn" id="compartidaGuardarBtn">Guardar</button>
+  </div>
+
+  <div class="backdrop" id="presupuestoEditBackdrop"></div>
+  <div class="sheet" id="presupuestoEditSheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="closePresupuestoEditSheet">✕</button>
+    <h2 id="presupuestoEditTitle">Presupuesto</h2>
+
+    <div class="presu-total-display">
+      <span class="l">Presupuesto anual actual</span>
+      <span class="v" id="presuTotalAnualBig">$0</span>
+    </div>
+
+    <label>Presupuesto anual</label>
+    <div class="presu-hint">Escribe el total del año: se reparte en partes iguales entre los 12 meses.</div>
+    <div class="row2">
+      <input type="text" inputmode="numeric" id="presuMontoAnualDirecto" placeholder="0">
+      <button type="button" class="ghost-btn" id="presuAplicarAnualDirecto" style="margin-top:0;">Aplicar</button>
+    </div>
+
+    <label>O distribuir por porcentaje (mes con bono, etc.)</label>
+    <div class="presu-hint">Útil si en algún mes tienes bono o ganancia extra: sube el % de ese mes y baja el resto. Deben sumar 100%.</div>
+    <input type="text" inputmode="numeric" id="presuMontoAnual" placeholder="Monto anual total">
+    <div class="presu-grid" id="presuPorcentajes"></div>
+    <button type="button" class="ghost-btn" id="presuAplicarDistribucion">Distribuir por porcentaje</button>
+
+    <label>Presupuesto por mes (editable directo)</label>
+    <div class="presu-grid" id="presuMeses"></div>
+
+    <button type="button" class="submit-btn" id="presuGuardarBtn">Guardar presupuesto</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="setup-overlay" id="setupOverlay" style="display:none;">
+    <h1>💰 Configura tu API</h1>
+    <p>Pega la URL de tu Apps Script Web App y el token. Se guardan solo en este navegador/celular, nunca en el código publicado.</p>
+    <label>URL del Web App</label>
+    <input type="text" id="setupUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <label>Token</label>
+    <input type="text" id="setupToken" placeholder="Tu APP_TOKEN">
+    <button class="submit-btn" id="setupSave">Guardar y continuar</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ====== CONFIGURACIÓN ======
+  // La URL y el token NO viven en el código (así el archivo se puede publicar
+  // públicamente sin exponer nada): se piden una vez y quedan en localStorage.
+  var API_URL = localStorage.getItem("cp_api_url") || "";
+  var API_TOKEN = localStorage.getItem("cp_api_token") || "";
+
+  var MESES = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+  var MESES_LABEL = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  var PERSONAS = ["Propio","Daniela"];
+  var money = new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0});
+  var milesFmt = new Intl.NumberFormat("es-CL",{maximumFractionDigits:0});
+
+  // Inputs de presupuesto: se muestran con puntos de miles (formato CLP) pero
+  // guardan/leen el número real. type="text" porque un <input type="number">
+  // no puede mostrar puntos.
+  // Todo el texto que Angel escribe (detalle, nombre de cuenta, categoría
+  // nueva...) se inserta con innerHTML en vez de textContent, así que se
+  // escapa antes de concatenar. Riesgo real bajo (solo él usa la app), pero
+  // barato de cerrar (detectado en la auditoría del 2026-08-30).
+  function esc(s){
+    return String(s==null?"":s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function formatMiles(n){ return n ? milesFmt.format(n) : ""; }
+  function parseMiles(v){ var digits = String(v||"").replace(/\D/g,""); return digits ? parseInt(digits,10) : 0; }
+  function attachMilesInput(input){
+    input.addEventListener("input", function(){
+      var num = parseMiles(input.value);
+      input.value = num ? milesFmt.format(num) : "";
+    });
+  }
+
+  // ====== Iconos por categoría (line icons, heredan color via currentColor) ======
+  var ICON_PATHS = {
+    'SUSCRIPCIONES':'<path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.7-3L3 16"/><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.7 3L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/>',
+    'CASA':'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.8"/><path d="M9.5 21v-6h5v6"/>',
+    'GAS':'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4.1 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5Z"/>',
+    'COMIDA':'<path d="M3 2v7c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2V2"/><path d="M6 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+    'LUZ':'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    'AGUA':'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5S12.5 5.5 12 3c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+    'INTERNET':'<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/>',
+    'ARRIENDO':'<circle cx="7.5" cy="15.5" r="3.5"/><path d="M10 13 20 3"/><path d="m17 6 2.5 2.5"/><path d="M14.5 8.5 17 11"/>',
+    'CARRO':'<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+    'GASOLINA':'<path d="M3 22h12"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M4 9h10"/><path d="m18 8 2 2v8a2 2 0 0 1-4 0v-4h-2"/><path d="M18 8V6"/>',
+    'REGALOS':'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8"/><path d="M16.5 8a2.5 2.5 0 0 0 0-5C14 3 12 8 12 8"/>',
+    'VIAJES':'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+    'SALIDAS':'<path d="M8 22h8"/><path d="M12 11v11"/><path d="m19 3-7 8-7-8Z"/>',
+    'SALIDAS 2':'<path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12v6"/><path d="M13 12v6"/><path d="M5 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8"/><path d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1-.14-5A3.5 3.5 0 0 1 9.5 2a3.5 3.5 0 0 1 5 0 3.5 3.5 0 0 1 4.14 1 2.5 2.5 0 0 1-.14 5c-.78 0-1.5-.5-2.5-.5Z"/>',
+    'COMPRAS':'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+    'DEUDA BCI':'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>',
+    'DEUDAS':'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
+    'PAGO DEUDAS':'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
+    'SEGUROS':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+    'SALUD':'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+    'ENTEL':'<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18.5h2"/>',
+    'AHORRO':'<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/>',
+    'SUELDO':'<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+    'GANANCIAS':'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+    'COMPRA DE CASA':'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.8"/><path d="M12 12v6M9 15h6"/>',
+    // Categorías de la hoja Saldos (patrimonio, 2026-08-30).
+    'EFECTIVO':'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+    'INVERSION':'<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+    'PROPIEDAD':'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+    'VEHICULO':'<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+    'PRESTAMO':'<path d="M17 8c0-2.2-2.2-4-5-4S7 5.8 7 8s2.2 4 5 4 5 1.8 5 4-2.2 4-5 4-5-1.8-5-4"/><path d="M12 2v2M12 20v2"/>',
+    'DEUDA':'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
+    '_DEFAULT':'<path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/>'
+  };
+  function iconKey(name){
+    var s = String(name==null?'':name).normalize('NFD');
+    var sinAcentos = '';
+    for(var i=0;i<s.length;i++){
+      var code = s.charCodeAt(i);
+      if(code < 0x0300 || code > 0x036f) sinAcentos += s[i];
+    }
+    return sinAcentos.toUpperCase().replace(/\s+/g,' ').trim();
+  }
+  function catIcon(name, cls){
+    var paths = ICON_PATHS[iconKey(name)] || ICON_PATHS['_DEFAULT'];
+    return '<span class="cat-ico '+(cls||'')+'">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg></span>';
+  }
+
+  var now = new Date();
+  var state = {
+    mode: "mensual", // mensual | anual
+    year: now.getFullYear(),
+    monthIdx: now.getMonth(),
+    data: null,
+    listas: null,
+    movimientos: null,
+    historico: null,
+    deudas: null,
+    metas: null,
+    saldos: null
+  };
+  var deudaFiltroPersona = "";
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  // ====== API ======
+  function apiGet(params){
+    var withToken = {};
+    Object.keys(params).forEach(function(k){ withToken[k] = params[k]; });
+    withToken.token = API_TOKEN;
+    var qs = Object.keys(withToken).map(function(k){ return k+"="+encodeURIComponent(withToken[k]); }).join("&");
+    return fetch(API_URL + "?" + qs).then(function(r){ return r.json(); });
+  }
+  function apiPost(body){
+    body.token = API_TOKEN;
+    return fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify(body)
+    }).then(function(r){ return r.json(); })
+      .then(function(json){
+        // Cualquier escritura puede cambiar el histórico (gasto/ahorro/ingresos mes a
+        // mes, histórico por año). Se invalida el caché para que el próximo render lo
+        // vuelva a pedir en vez de mostrar números viejos.
+        if(json && json.ok) state.historico = null;
+        return json;
+      });
+  }
+
+  // ====== CACHE local (para mostrar algo instantáneo al abrir) ======
+  function cacheKey(){ return "cp_cache_" + state.year + "_" + MESES[state.monthIdx]; }
+  function saveCache(json){ try{ localStorage.setItem(cacheKey(), JSON.stringify(json)); }catch(e){} }
+  function loadCache(){ try{ var v = localStorage.getItem(cacheKey()); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
+
+  // ====== Helpers de agregación ======
+  // Una sola definición de "qué categorías cuentan como gasto normal": antes este
+  // filtro estaba repetido en cada render y era fácil que se desincronizaran.
+  function categoriasGasto(d){
+    return d.categorias.filter(function(c){ return c.nombre !== "Compra de casa" && c.nombre !== "GANANCIAS"; });
+  }
+  function sumaCampo(cats, campoAnual, campoMes, anual){
+    return cats.reduce(function(acc,c){ return acc + (Number(anual ? c[campoAnual] : c[campoMes]) || 0); }, 0);
+  }
+  function esAnual(){ return state.mode === "anual"; }
+  function sufijoPeriodo(){ return esAnual() ? "anual" : "del mes"; }
+  function pctSeguro(parte, total){ return total > 0 ? (parte / total * 100) : 0; }
+
+  // ====== Render ======
+  function periodLabel(){
+    if(state.mode === "anual") return String(state.year);
+    return MESES_LABEL[state.monthIdx] + " " + state.year;
+  }
+
+  function render(){
+    $("periodLabel").textContent = periodLabel();
+    var d = state.data;
+    if(!d){ return; }
+
+    var anual = esAnual();
+    var gasto = anual ? d.subTotalAnual : d.subTotal;
+    var sueldo = anual ? d.sueldoAnual : d.sueldo;
+    var ahorro = anual ? d.ahorroAnual : d.ahorro;
+    var ganancias = Number(anual ? d.gananciasAnual : d.ganancias) || 0;
+    // Desde 2026-09-12 "gasto" (subTotal) ya no resta GANANCIAS internamente
+    // (era un bug: la trataba como gasto negativo) — hay que sumarla acá
+    // explícitamente para que "Disponible" no la pierda.
+    var diferencia = sueldo + ganancias - gasto - ahorro;
+
+    var visibles = categoriasGasto(d);
+    // El ahorro se suma acá también (2026-09-13), igual que en renderPresupuestoStats():
+    // Resumen y Presupuesto tienen que mostrar el mismo "Presupuesto"/"Gastado" total,
+    // si no quedan desincronizados como pasaba con GANANCIAS antes del fix del 2026-09-12.
+    var ahorroPresMeta = Number(anual ? d.ahorroPresupuestoAnual : d.ahorroPresupuesto) || 0;
+    var presupuestoTotal = sumaCampo(visibles, "presupuestoAnual", "presupuestoMensual", anual) + ahorroPresMeta;
+    var gastoTotal = gasto + ahorro;
+
+    var hayPresupuesto = presupuestoTotal > 0;
+    var pctGasto = pctSeguro(gastoTotal, presupuestoTotal);
+    var restante = presupuestoTotal - gastoTotal;
+    var estGasto = estadoPct(pctGasto, hayPresupuesto);
+
+    $("resumenHero").innerHTML = ringCard({
+      titulo: "Gasto " + sufijoPeriodo(),
+      pct: hayPresupuesto ? pctGasto : (gastoTotal > 0 ? 100 : 0),
+      color: colorEstado(estGasto),
+      badge: hayPresupuesto ? pctGasto.toFixed(0) + "% usado" : "Sin presupuesto",
+      badgeCls: estGasto === "over" ? "over" : (estGasto === "warn" ? "warn" : ""),
+      big: hayPresupuesto ? pctGasto.toFixed(0) + "%" : money.format(gastoTotal),
+      bigSmall: !hayPresupuesto,
+      small: hayPresupuesto ? "del presupuesto" : "gastado",
+      tri: [
+        { v: money.format(presupuestoTotal), l: "Presupuesto", cls: "acc" },
+        { v: money.format(gastoTotal), l: "Gastado" },
+        { v: money.format(Math.abs(restante)), l: restante >= 0 ? "Te queda" : "Te pasaste",
+          cls: restante >= 0 ? "pos" : "neg" }
+      ]
+    });
+
+    $("statScroll").innerHTML =
+      statCard("Sueldo", money.format(sueldo)) +
+      statCard("Ganancias", money.format(ganancias), ganancias > 0 ? "pos" : "") +
+      statCard("Ahorro", money.format(ahorro), ahorro > 0 ? "pos" : "") +
+      statCard("Disponible", money.format(diferencia), diferencia >= 0 ? "pos" : "neg");
+
+    renderCompartidos();
+    renderPresupuestoStats();
+    renderPresupuestoBars();
+    renderAhorro();
+    renderTendencia();
+    // La tendencia necesita el histórico (gasto mes a mes).
+    // loadHistorico() cachea, así que esto es barato salvo la primera vez.
+    loadHistorico();
+
+    // Categorías, separadas en Fijos / Variables
+    var fijos = visibles.filter(function(c){ return c.tipo === "FIJO"; });
+    var variables = visibles.filter(function(c){ return c.tipo !== "FIJO"; });
+
+    $("catFijos").innerHTML = fijos.map(function(c){ return catCard(c, anual); }).join("") || '<div class="empty-note">Sin categorías fijas.</div>';
+    $("catVariables").innerHTML = variables.map(function(c){ return catCard(c, anual); }).join("") || '<div class="empty-note">Sin categorías variables.</div>';
+
+    var compraCasa = d.categorias.find(function(c){ return c.nombre === "Compra de casa"; });
+    if(compraCasa){
+      var valorCasa = anual ? compraCasa.totalAnual : compraCasa.valorMes;
+      $("compraCasaCard").innerHTML =
+        '<div class="cat-row"><div class="cat-row-top">' + catIcon(compraCasa.nombre) +
+        '<div class="cat-row-body">' +
+        '<div class="cat-top"><span class="cat-name">'+(anual?"Año "+state.year:MESES_LABEL[state.monthIdx])+'</span><span class="cat-amount">'+money.format(valorCasa)+'</span></div>' +
+        '<div class="cat-sub">No se incluye en el gasto ni en el disponible del Resumen.</div>' +
+        '</div></div></div>';
+    } else {
+      $("compraCasaCard").innerHTML = '<div class="empty-note">Sin datos.</div>';
+    }
+  }
+
+  function catCard(c, anual){
+    var valor = anual ? c.totalAnual : c.valorMes;
+    var presupuesto = anual ? c.presupuestoAnual : c.presupuestoMensual;
+    var hayPres = presupuesto > 0;
+    var pctReal = hayPres ? (valor/presupuesto)*100 : 0;
+    var pctBarra = hayPres ? Math.min(100, pctReal) : (valor > 0 ? 100 : 0);
+    var estado = estadoPct(pctReal, hayPres);
+    // Redondeado al peso: sin esto, arrastres de coma flotante de fórmulas
+    // encadenadas (ej. las categorías compartidas usan "/2") podían mostrar
+    // "Te pasaste $0" en vez de "Justo en el presupuesto" (bug cosmético
+    // encontrado en la auditoría del 2026-08-30).
+    var restante = Math.round(presupuesto - valor);
+
+    var sub = hayPres
+      ? (restante > 0
+          ? 'Te queda '+money.format(restante)
+          : (restante === 0
+              ? 'Justo en el presupuesto'
+              : '<span class="over">Te pasaste '+money.format(-restante)+'</span>'))
+      : 'Sin presupuesto asignado';
+
+    return '<div class="budget-card">' +
+      '<div class="budget-bar-top">' + catIcon(c.nombre, (estado ? estado+' ' : '')+'sm') +
+      '<span class="budget-bar-name">'+esc(c.nombre)+'</span>' +
+      '<span class="budget-bar-pct">'+(hayPres ? pctReal.toFixed(0)+'%' : money.format(valor))+'</span>' +
+      '</div>' +
+      (hayPres ? '<div class="budget-bar-track"><div class="budget-bar-fill" style="width:'+pctBarra+'%;background:'+colorEstado(estado)+'"></div></div>' : '') +
+      '<div class="cat-sub">'+sub+'</div>' +
+      (hayPres ? '<div class="cat-of" style="margin-top:2px;">'+money.format(valor)+' de '+money.format(presupuesto)+'</div>' : '') +
+    '</div>';
+  }
+
+  function renderCompartidos(){
+    var d = state.data;
+    if(!d) return;
+    var anual = state.mode === "anual";
+    var ct = anual ? d.compartidos.totalAnual : d.compartidos.total;
+    var ce = anual ? d.compartidos.entre2Anual : d.compartidos.entre2;
+    var pagadoDaniela = anual ? d.compartidos.pagadoDanielaAnual : d.compartidos.pagadoDaniela;
+    // DEUDA BCI es un mecanismo heredado de la app de Angel (una categoría
+    // puntual que se resta completa del balance, aparte del 50/50) que Ivan no
+    // usa hoy — el backend la deja en 0 si no existe esa categoría exacta, así
+    // que este bloque queda inerte a menos que se cree una categoría así.
+    var deudaBci = Number((d.compartidos.deudaBci && (anual ? d.compartidos.deudaBci.anual : d.compartidos.deudaBci.mes)) || 0);
+    // Si el backend todavía no manda balanceNeto (versión vieja cacheada), cae
+    // de vuelta al balance normal.
+    var balance = anual
+      ? (d.compartidos.balanceNetoAnual !== undefined ? d.compartidos.balanceNetoAnual : d.compartidos.balanceAnual)
+      : (d.compartidos.balanceNeto !== undefined ? d.compartidos.balanceNeto : d.compartidos.balance);
+
+    var balanceLabel = balance >= 0 ? "Daniela te debe" : "Le debes a Daniela";
+    var balanceCls = balance >= 0 ? "pos" : "neg";
+
+    var pagadoPropio = (anual ? d.compartidos.balanceAnual : d.compartidos.balance) * 2 + pagadoDaniela;
+
+    var notaDeuda = deudaBci > 0 ? ' Se descontó '+money.format(deudaBci)+' de la cuota que le debes.' : '';
+    $("balanceNote").innerHTML =
+      '<div class="balance-card">' +
+        '<div class="who">Balance de la casa · '+(anual ? state.year : MESES_LABEL[state.monthIdx])+'</div>' +
+        '<div class="amt '+balanceCls+'">'+balanceLabel+' '+money.format(Math.abs(balance))+'</div>' +
+        '<div class="note">De '+money.format(ct)+' en gastos comunes, tu mitad son '+money.format(ce)+
+          ' y Daniela pagó '+money.format(pagadoDaniela)+'.'+notaDeuda+'</div>' +
+      '</div>';
+
+    $("compartidosStats").innerHTML =
+      statCard("Total casa", money.format(ct)) +
+      statCard("Tu mitad", money.format(ce)) +
+      statCard("Pagaste tú", money.format(pagadoPropio)) +
+      statCard("Pagó Daniela", money.format(pagadoDaniela));
+
+    var detalle = d.compartidos.detalle || [];
+    var filasDetalle = detalle.map(function(item){
+      var valor = anual ? item.totalAnual : item.valorMes;
+      var mitad = valor / 2;
+      // El mismo criterio 50/50 que "tu mitad": lo que se muestra es la mitad
+      // de lo que Daniela puso, no el monto total.
+      var pagoDaniela = (Number(anual ? item.pagadoDanielaAnual : item.pagadoDaniela) || 0) / 2;
+      // Si Daniela pagó parte (o todo) de esta categoría, se muestra
+      // diferenciado acá mismo: qué ítem fue y cuánto puso ella.
+      var danielaLine = pagoDaniela > 0
+        ? '<div class="cat-top"><span class="cat-sub" style="color:var(--mint)">Pagó Daniela</span>' +
+          '<span class="cat-of" style="color:var(--mint)">'+money.format(pagoDaniela)+'</span></div>'
+        : '';
+      return '<div class="cat-row"><div class="cat-row-top">' + catIcon(item.nombre) +
+        '<div class="cat-row-body">' +
+        '<div class="cat-top"><span class="cat-name">'+esc(item.nombre)+'</span><span class="cat-amount">'+money.format(valor)+'</span></div>' +
+        '<div class="cat-top"><span class="cat-sub">50/50 con Daniela</span>' +
+        '<span class="cat-of">tu mitad '+money.format(mitad)+'</span></div>' +
+        danielaLine +
+        '</div></div></div>';
+    });
+
+    // DEUDA BCI: ver nota arriba, inerte para Ivan salvo que exista esa categoría.
+    if(deudaBci > 0){
+      filasDetalle.push(
+        '<div class="cat-row"><div class="cat-row-top">' + catIcon("DEUDA BCI") +
+        '<div class="cat-row-body">' +
+        '<div class="cat-top"><span class="cat-name">DEUDA BCI</span><span class="cat-amount" style="color:var(--red)">−'+money.format(deudaBci)+'</span></div>' +
+        '<div class="cat-top"><span class="cat-sub">Cuota mensual que le debes a Daniela</span>' +
+        '<span class="cat-of">se resta completa del balance</span></div>' +
+        '</div></div></div>'
+      );
+    }
+
+    $("compartidosDetalle").innerHTML = filasDetalle.join("") || '<div class="empty-note">Sin gastos compartidos este período.</div>';
+  }
+
+  // ====== Deudas personales (roster dinámico, hoy solo Daniela) — ledger aparte de lo compartido ======
+  function loadDeudas(){
+    return apiGet({ accion: "deudas" }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      state.deudas = json;
+      renderDeudas();
+      populateDeudaPersonas();
+    }).catch(function(err){
+      $("deudasList").innerHTML = '<div class="empty-note">Error cargando deudas: '+err.message+'</div>';
+    });
+  }
+
+  function populateDeudaPersonas(){
+    var personas = (state.deudas && state.deudas.personas) || ["Daniela"];
+    var actual = $("dPersona").value;
+    $("dPersona").innerHTML = personas.map(function(p){ return '<option value="'+esc(p)+'">'+esc(p)+'</option>'; }).join("") +
+      '<option value="__OTRA__">+ Otra persona...</option>';
+    if(personas.indexOf(actual) !== -1) $("dPersona").value = actual;
+  }
+
+  function renderDeudas(){
+    var d = state.deudas;
+    if(!d) return;
+    var personas = d.personas || ["Daniela"];
+
+    $("deudasGrid").innerHTML = personas.map(function(p){
+      var saldo = Number(d.saldos[p]) || 0;
+      var cls = saldo > 0 ? "pos" : (saldo < 0 ? "neg" : "");
+      var label = saldo > 0 ? p+" te debe" : (saldo < 0 ? "Le debes a "+p : p+" al día");
+      return '<div class="person-card'+(deudaFiltroPersona===p?" active":"")+'" data-persona="'+esc(p)+'">'
+        + '<span class="person-avatar">'+esc(p.charAt(0).toUpperCase())+'</span>'
+        + '<div class="person-body">'
+        + '<div class="pv '+cls+'">'+money.format(Math.abs(saldo))+'</div>'
+        + '<div class="pl">'+esc(label)+'</div></div></div>';
+    }).join("");
+
+    document.querySelectorAll("#deudasGrid .person-card").forEach(function(el){
+      el.onclick = function(){
+        deudaFiltroPersona = (deudaFiltroPersona === el.dataset.persona) ? "" : el.dataset.persona;
+        renderDeudas();
+      };
+    });
+
+    var movs = d.movimientos || [];
+    if(deudaFiltroPersona) movs = movs.filter(function(m){ return m.persona === deudaFiltroPersona; });
+
+    // Solo las filas con un "tipo" reconocido (preste/mePagaron/debo/pague) se
+    // pueden editar — las dos filas de "Saldo inicial" migradas del Excel no
+    // tienen un tipo que mapear, así que quedan de solo lectura.
+    $("deudasList").innerHTML = movs.map(function(m){
+      var fecha = new Date(m.fecha);
+      var fechaLabel = isNaN(fecha.getTime()) ? "" : fecha.toLocaleDateString("es-CL");
+      var color = m.monto >= 0 ? "var(--green)" : "var(--red)";
+      var signo = m.monto >= 0 ? "+" : "−";
+      var editable = !!m.tipo;
+      return '<div class="mov-row'+(editable?"":' ')+'" data-fila="'+m.fila+'" style="'+(editable?"":"cursor:default;")+'">' + catIcon("DEUDAS") +
+        '<div class="mov-body">' +
+        '<div class="mov-top"><span class="mov-name">'+esc(m.persona)+' · '+esc(m.concepto)+(m.detalle?' · '+esc(m.detalle):'')+'</span>'+
+        '<span class="mov-amount" style="color:'+color+'">'+signo+money.format(Math.abs(m.monto))+'</span></div>' +
+        '<div class="mov-sub"><span class="pill">'+fechaLabel+'</span></div>' +
+        '</div>'+(editable?'<span class="edit-chevron">✎</span>':'')+'</div>';
+    }).join("") || '<div class="empty-note">Sin movimientos'+(deudaFiltroPersona?' con '+esc(deudaFiltroPersona):' de deudas todavía')+'.</div>';
+
+    document.querySelectorAll("#deudasList .mov-row").forEach(function(row){
+      var m = movs.filter(function(x){ return x.fila === Number(row.dataset.fila); })[0];
+      if(!m || !m.tipo) return;
+      row.onclick = function(){ openDeudaSheet(m); };
+    });
+  }
+
+  // ====== Resumen compartido como imagen (para mandarle a Daniela) ======
+  // Se dibuja a mano en un <canvas> en vez de usar una librería tipo html2canvas:
+  // la app no tiene dependencias ni build, y así el resultado se ve igual siempre
+  // (paleta clara fija, aunque Ivan tenga el celular en modo oscuro).
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+  }
+
+  function datosCompartidos(){
+    var d = state.data;
+    if(!d || !d.compartidos) return null;
+    var anual = esAnual();
+    var detalle = (d.compartidos.detalle || []).map(function(item){
+      return {
+        nombre: item.nombre,
+        valor: Number(anual ? item.totalAnual : item.valorMes) || 0,
+        // Mismo criterio 50/50 que "mitad c/u": se muestra la mitad de lo que
+        // puso Daniela, no el monto total.
+        pagadoDaniela: (Number(anual ? item.pagadoDanielaAnual : item.pagadoDaniela) || 0) / 2
+      };
+    }).filter(function(i){ return i.valor > 0; });
+
+    var balance = Number(anual ? d.compartidos.balanceAnual : d.compartidos.balance) || 0;
+    var pagadoDaniela = Number(anual ? d.compartidos.pagadoDanielaAnual : d.compartidos.pagadoDaniela) || 0;
+    var deudaBci = Number((d.compartidos.deudaBci && (anual ? d.compartidos.deudaBci.anual : d.compartidos.deudaBci.mes)) || 0);
+    var balanceNetoRaw = anual ? d.compartidos.balanceNetoAnual : d.compartidos.balanceNeto;
+    var balanceNeto = balanceNetoRaw !== undefined ? Number(balanceNetoRaw) || 0 : balance - deudaBci;
+
+    return {
+      detalle: detalle,
+      total: Number(anual ? d.compartidos.totalAnual : d.compartidos.total) || 0,
+      mitad: Number(anual ? d.compartidos.entre2Anual : d.compartidos.entre2) || 0,
+      balance: balanceNeto,
+      deudaBci: deudaBci,
+      pagadoDaniela: pagadoDaniela,
+      // El backend entrega el balance ya dividido: balance = (propio - daniela) / 2
+      pagadoPropio: balance * 2 + pagadoDaniela,
+      periodo: anual ? ("Año " + state.year) : (MESES_LABEL[state.monthIdx] + " " + state.year)
+    };
+  }
+
+  function generarImagenCompartidos(){
+    var info = datosCompartidos();
+    if(!info) return null;
+
+    var C = { accent:"#1c1c1c", accent2:"#000000", mint:"#444444", texto:"#141414",
+              dim:"#5a5a5a", borde:"#dcdcdc", suave:"#ececec", rojo:"#000000" };
+
+    var W = 760, padX = 44, escala = 2; // 1520px de ancho: nítido en celular sin pesar de más
+    var headerH = 142, gapHeader = 34, thH = 34, rowH = 44, rowHDaniela = 22, gapTabla = 26;
+    var totalesH = 96, balanceH = 136, footerH = 76;
+    // Las filas donde Daniela pagó parte de la categoría necesitan una línea
+    // extra, para que quede diferenciado en qué ítem pagó ella.
+    function alturaFila(item){ return item.pagadoDaniela > 0 ? rowH + rowHDaniela : rowH; }
+    var alturaFilas = info.detalle.reduce(function(acc, item){ return acc + alturaFila(item); }, 0);
+    // Línea extra para DEUDA BCI (heredado de Angel, inerte para Ivan — ver
+    // nota en renderCompartidos): no es 50/50, se restaría completa del balance.
+    var pagosH = info.deudaBci > 0 ? 132 : 100;
+    var H = headerH + gapHeader + thH + alturaFilas + gapTabla +
+            totalesH + pagosH + balanceH + footerH;
+
+    var canvas = document.createElement("canvas");
+    canvas.width = W * escala;
+    canvas.height = H * escala;
+    var ctx = canvas.getContext("2d");
+    ctx.scale(escala, escala);
+    ctx.textBaseline = "alphabetic";
+
+    var F = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+    function fuente(size, weight){ ctx.font = (weight||400)+" "+size+"px "+F; }
+    function texto(t, x, y, color, size, weight, align){
+      ctx.fillStyle = color; fuente(size, weight);
+      ctx.textAlign = align || "left";
+      ctx.fillText(t, x, y);
+      ctx.textAlign = "left";
+    }
+
+    // Fondo
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+
+    // Cabecera con degradado
+    var grad = ctx.createLinearGradient(0, 0, W, headerH);
+    grad.addColorStop(0, C.accent);
+    grad.addColorStop(1, C.accent2);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, headerH);
+    texto("Gastos compartidos", padX, 62, "#ffffff", 32, 700);
+    texto(info.periodo, padX, 98, "rgba(255,255,255,0.88)", 20, 500);
+    texto("Ivan  ·  Daniela", W - padX, 98, "rgba(255,255,255,0.75)", 17, 600, "right");
+
+    var y = headerH + gapHeader;
+
+    // Encabezado de tabla
+    texto("CATEGORÍA", padX, y + 14, C.dim, 13, 700);
+    texto("TOTAL", W - padX - 170, y + 14, C.dim, 13, 700, "right");
+    texto("MITAD C/U", W - padX, y + 14, C.dim, 13, 700, "right");
+    y += thH;
+    ctx.strokeStyle = C.borde; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padX, y - 6); ctx.lineTo(W - padX, y - 6); ctx.stroke();
+
+    // Filas
+    info.detalle.forEach(function(item, i){
+      var rh = alturaFila(item);
+      var cy = y + rowH/2 + 6;
+      if(i % 2 === 0){
+        ctx.fillStyle = C.suave;
+        roundRect(ctx, padX - 14, y + 2, W - (padX-14)*2, rh - 4, 8);
+        ctx.fill();
+      }
+      texto(item.nombre, padX, cy, C.texto, 18, 600);
+      texto(money.format(item.valor), W - padX - 170, cy, C.texto, 18, 700, "right");
+      texto(money.format(item.valor/2), W - padX, cy, C.dim, 17, 500, "right");
+      if(item.pagadoDaniela > 0){
+        texto("Pagó Daniela: " + money.format(item.pagadoDaniela), padX, cy + 22, C.mint, 14, 600);
+      }
+      y += rh;
+    });
+
+    y += gapTabla;
+
+    // Totales
+    ctx.strokeStyle = C.borde;
+    ctx.beginPath(); ctx.moveTo(padX, y - 12); ctx.lineTo(W - padX, y - 12); ctx.stroke();
+    texto("Total compartido", padX, y + 26, C.dim, 17, 600);
+    texto(money.format(info.total), W - padX, y + 28, C.texto, 26, 800, "right");
+    texto("Le corresponde a cada uno", padX, y + 66, C.dim, 17, 600);
+    texto(money.format(info.mitad), W - padX, y + 68, C.accent, 22, 800, "right");
+    y += totalesH;
+
+    // Quién pagó
+    texto("QUIÉN PAGÓ", padX, y + 12, C.dim, 13, 700);
+    texto("Pagó Ivan", padX, y + 48, C.texto, 18, 600);
+    texto(money.format(info.pagadoPropio), W - padX, y + 48, C.texto, 19, 700, "right");
+    texto("Pagó Daniela", padX, y + 80, C.texto, 18, 600);
+    texto(money.format(info.pagadoDaniela), W - padX, y + 80, C.texto, 19, 700, "right");
+    if(info.deudaBci > 0){
+      texto("Cuota BCI que Ivan le debe a Daniela", padX, y + 112, C.dim, 15, 600);
+      texto("−" + money.format(info.deudaBci), W - padX, y + 112, C.rojo, 18, 700, "right");
+    }
+    y += pagosH;
+
+    // Balance final
+    var aFavorIvan = info.balance >= 0;
+    var monto = Math.abs(info.balance);
+    var colorCaja = aFavorIvan ? C.mint : C.rojo;
+    ctx.fillStyle = colorCaja;
+    roundRect(ctx, padX, y, W - padX*2, balanceH - 24, 18);
+    ctx.fill();
+    texto(aFavorIvan ? "DANIELA LE DEBE A IVAN" : "IVAN LE DEBE A DANIELA",
+          W/2, y + 44, "rgba(255,255,255,0.92)", 15, 700, "center");
+    texto(money.format(monto), W/2, y + 90, "#ffffff", 40, 800, "center");
+    y += balanceH;
+
+    // Pie
+    var hoy = new Date();
+    var fecha = ("0"+hoy.getDate()).slice(-2)+"/"+("0"+(hoy.getMonth()+1)).slice(-2)+"/"+hoy.getFullYear();
+    ctx.strokeStyle = C.borde;
+    ctx.beginPath(); ctx.moveTo(padX, y + 12); ctx.lineTo(W - padX, y + 12); ctx.stroke();
+    texto("Generado el " + fecha, padX, y + 42, C.dim, 14, 500);
+    texto("Cuentas Ivan", W - padX, y + 42, C.dim, 14, 600, "right");
+
+    return canvas;
+  }
+
+  function compartirResumenCompartidos(){
+    var info = datosCompartidos();
+    if(!info){ showToast("Espera a que carguen los datos", "err"); return; }
+    if(!info.detalle.length){ showToast("No hay gastos compartidos en este período", "err"); return; }
+
+    var canvas = generarImagenCompartidos();
+    var nombre = "compartidos-" + info.periodo.toLowerCase().replace(/\s+/g,"-") + ".png";
+
+    // Todo síncrono a propósito: navigator.share() exige seguir dentro del gesto
+    // del usuario, y un canvas.toBlob() asíncrono rompe esa condición en Safari.
+    var dataUrl = canvas.toDataURL("image/png");
+    var binario = atob(dataUrl.split(",")[1]);
+    var bytes = new Uint8Array(binario.length);
+    for(var i=0;i<binario.length;i++) bytes[i] = binario.charCodeAt(i);
+    var blob = new Blob([bytes], {type:"image/png"});
+
+    var texto = "Gastos compartidos · " + info.periodo + "\n" +
+      (info.balance >= 0
+        ? "Te toca ponerme " + money.format(Math.abs(info.balance))
+        : "Te debo " + money.format(Math.abs(info.balance)));
+
+    var archivo = null;
+    try { archivo = new File([blob], nombre, {type:"image/png"}); } catch(e){}
+
+    if(archivo && navigator.canShare && navigator.canShare({files:[archivo]}) && navigator.share){
+      navigator.share({ files:[archivo], title:"Gastos compartidos", text:texto })
+        .catch(function(){ /* el usuario canceló: no es un error */ });
+      return;
+    }
+
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    showToast("Imagen descargada ✓ ya puedes enviársela", "ok");
+  }
+
+  function renderPresupuestoStats(){
+    var d = state.data;
+    if(!d) return;
+    var anual = esAnual();
+    var cats = categoriasGasto(d);
+    // El ahorro se suma al total del anillo grande (pedido de Angel, 2026-09-14): antes solo
+    // sumaba gasto operativo, y el ahorro quedaba visible solo como tarjeta individual más
+    // abajo en renderPresupuestoBars(). Mismos campos que ya usa esa función.
+    var ahorroPresMeta = Number(anual ? d.ahorroPresupuestoAnual : d.ahorroPresupuesto) || 0;
+    var ahorroReal = Number(anual ? d.ahorroAnual : d.ahorro) || 0;
+    var totalPresupuesto = sumaCampo(cats, "presupuestoAnual", "presupuestoMensual", anual) + ahorroPresMeta;
+    var totalGasto = sumaCampo(cats, "totalAnual", "valorMes", anual) + ahorroReal;
+    var pct = pctSeguro(totalGasto, totalPresupuesto);
+    var restante = totalPresupuesto - totalGasto;
+
+    var hayPres = totalPresupuesto > 0;
+    var est = estadoPct(pct, hayPres);
+
+    $("presupuestoHero").innerHTML = ringCard({
+      // El año explícito en el título es a propósito (2026-09-12): Angel una
+      // vez editó el presupuesto de 2026 creyendo que estaba en 2027 (la hoja
+      // Presupuesto no distinguía año todavía). Ver PENDIENTES_para_Claude_Code.md.
+      titulo: "Presupuesto " + sufijoPeriodo() + " " + state.year,
+      pct: hayPres ? pct : 0,
+      color: colorEstado(est),
+      badge: hayPres ? pct.toFixed(0) + "% usado" : "Sin presupuesto",
+      badgeCls: est === "over" ? "over" : (est === "warn" ? "warn" : ""),
+      big: hayPres ? pct.toFixed(0) + "%" : "—",
+      small: hayPres ? "del presupuesto" : "sin asignar",
+      tri: [
+        { v: money.format(totalPresupuesto), l: "Presupuesto", cls: "acc" },
+        { v: money.format(totalGasto), l: "Gastado" },
+        { v: money.format(Math.abs(restante)), l: restante >= 0 ? "Te queda" : "Te pasaste",
+          cls: restante >= 0 ? "pos" : "neg" }
+      ]
+    });
+
+    // Dos conteos que el anillo no muestra y sirven para saber dónde mirar.
+    var anual = esAnual();
+    var sobre = 0, sinPres = 0;
+    cats.forEach(function(c){
+      var v = Number(anual ? c.totalAnual : c.valorMes) || 0;
+      var p = Number(anual ? c.presupuestoAnual : c.presupuestoMensual) || 0;
+      if(p <= 0){ sinPres++; return; }
+      if(v > p) sobre++;
+    });
+
+    $("presupuestoStats").innerHTML =
+      statCard("Sobre presupuesto", sobre + (sobre === 1 ? " categoría" : " categorías"), sobre > 0 ? "neg" : "pos") +
+      statCard("Sin presupuesto", sinPres + (sinPres === 1 ? " categoría" : " categorías"));
+  }
+
+  // Escala de negros a propósito (pedido de Angel para la app de Ivan, 2026-09-28):
+  // tonos intercalados oscuro/claro para que categorías vecinas en la lista se
+  // distingan aunque sea la misma familia de gris.
+  var CHART_PALETTE = ["#141414","#dcdcdc","#232323","#cdcdcd","#333333","#bebebe","#424242","#aeaeae","#525252","#9f9f9f","#616161","#8f8f8f","#717171","#808080"];
+
+  function renderPresupuestoBars(){
+    var d = state.data;
+    if(!d) return;
+    var anual = esAnual();
+    $("presupuestoAnioTag").textContent = String(state.year);
+
+    var cats = categoriasGasto(d).map(function(c){
+      return {
+        nombre: c.nombre,
+        valor: Number(anual ? c.presupuestoAnual : c.presupuestoMensual) || 0,
+        totalAnual: Number(c.presupuestoAnual) || 0,
+        gastado: Number(anual ? c.totalAnual : c.valorMes) || 0,
+        meta: false
+      };
+    });
+
+    // El ahorro entra como una meta más: así se ve qué parte del plan se va en
+    // gastos y qué parte queda reservada para ahorrar.
+    cats.push({
+      nombre: "AHORRO",
+      valor: Number(anual ? d.ahorroPresupuestoAnual : d.ahorroPresupuesto) || 0,
+      totalAnual: Number(d.ahorroPresupuestoAnual) || 0,
+      gastado: Number(anual ? d.ahorroAnual : d.ahorro) || 0,
+      meta: true
+    });
+
+    // Se muestran TODAS (incluidas las que están en 0), si no, una categoría sin
+    // presupuesto quedaría oculta y nunca se le podría asignar uno.
+    cats.sort(function(a,b){ return b.valor - a.valor; });
+
+    var total = cats.reduce(function(acc,c){ return acc + c.valor; }, 0);
+    var maxValor = cats.length ? cats[0].valor : 0;
+
+    $("presupuestoBars").innerHTML = cats.map(function(c, i){
+      var color = c.meta ? "var(--mint)" : CHART_PALETTE[i % CHART_PALETTE.length];
+      var pct = pctSeguro(c.valor, total);
+      var widthPct = pctSeguro(c.valor, maxValor);
+      var sub = c.valor > 0
+        ? (c.meta ? "Ahorrado: " : "Gastado: ") + money.format(c.gastado) + " · " + pctSeguro(c.gastado, c.valor).toFixed(0) + "% de la meta"
+        : "Sin presupuesto asignado";
+      return '<div class="budget-card">' +
+        '<div class="budget-bar-top">' + catIcon(c.nombre, 'sm') +
+        '<span class="budget-bar-name">'+esc(c.nombre)+(c.meta?' <span class="tag" style="font-size:9px;padding:1px 6px;">meta</span>':'')+'</span>' +
+        '<span class="budget-bar-pct">'+pct.toFixed(1)+'%</span>' +
+        '</div>' +
+        '<div class="budget-bar-track"><div class="budget-bar-fill" style="width:'+widthPct.toFixed(1)+'%;background:'+color+'"></div></div>' +
+        '<div class="cat-sub">'+sub+'</div>' +
+        '<div class="budget-bar-edit">' +
+        '<input type="text" inputmode="numeric" class="budget-bar-input" value="'+formatMiles(c.totalAnual)+'" placeholder="Presupuesto anual">' +
+        '<button type="button" class="budget-bar-save" title="Guardar presupuesto anual">✓</button>' +
+        '<button type="button" class="budget-bar-save budget-bar-months" title="Editar mes a mes" style="background:var(--surface-2);color:var(--accent);">▤</button>' +
+        '</div>' +
+        '</div>';
+    }).join("");
+
+    document.querySelectorAll("#presupuestoBars .budget-card").forEach(function(row, i){
+      var input = row.querySelector(".budget-bar-input");
+      attachMilesInput(input);
+      row.querySelector(".budget-bar-save").onclick = function(e){
+        guardarPresupuestoAnualInline(cats[i].nombre, input, e.currentTarget);
+      };
+      row.querySelector(".budget-bar-months").onclick = function(){
+        openPresupuestoEdit(cats[i].nombre);
+      };
+    });
+  }
+
+  function guardarPresupuestoAnualInline(categoria, input, btn){
+    var total = parseMiles(input.value);
+    var base = Math.floor(total / 12);
+    var resto = total - base * 12;
+    var meses = {};
+    MESES.forEach(function(m, i){ meses[m] = base + (i < resto ? 1 : 0); });
+
+    btn.disabled = true;
+    apiPost({ accion: "guardarPresupuesto", anio: state.year, categoria: categoria, meses: meses })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        showToast("Presupuesto actualizado ✓", "ok");
+        loadPresupuesto();
+        loadData(true);
+      })
+      .catch(function(err){
+        showToast("Error: " + err.message, "err");
+      })
+      .finally(function(){
+        btn.disabled = false;
+      });
+  }
+
+  function statCard(label, value, cls){
+    return '<div class="stat-card"><div class="label">'+label+'</div><div class="value'+(cls?" "+cls:"")+'">'+value+'</div></div>';
+  }
+
+  // ====== Tarjeta hero con anillo de progreso ======
+  // Un solo número grande arriba (el % que importa) y los 3 montos de apoyo
+  // abajo, en vez de seis tarjetas sueltas compitiendo por atención.
+  var RING_C = 2 * Math.PI * 70; // r=70 en el viewBox de 172
+
+  // El color del anillo/barra dice cómo vas sin tener que leer el número.
+  function estadoPct(pct, hayPresupuesto){
+    if(!hayPresupuesto) return "";
+    if(pct > 100) return "over";
+    if(pct > 80) return "warn";
+    return "ok";
+  }
+  function colorEstado(estado){
+    if(estado === "over") return "var(--red)";
+    if(estado === "warn") return "var(--amber)";
+    if(estado === "ok") return "var(--green)";
+    return "var(--accent)";
+  }
+
+  function ringCard(o){
+    var pct = Math.max(0, Math.min(100, Number(o.pct) || 0));
+    var offset = RING_C * (1 - pct/100);
+    var color = o.color || "var(--accent)";
+    return '<div class="hero-card">' +
+      '<div class="hero-head"><div class="hero-title">'+o.titulo+'</div>' +
+        (o.badge ? '<div class="hero-badge'+(o.badgeCls?" "+o.badgeCls:"")+'">'+o.badge+'</div>' : '') +
+      '</div>' +
+      '<div class="ring-wrap"><div class="ring">' +
+        '<svg width="172" height="172" viewBox="0 0 172 172" aria-hidden="true">' +
+          '<circle cx="86" cy="86" r="70" fill="none" stroke="var(--surface-2)" stroke-width="16"/>' +
+          '<circle class="ring-fill" cx="86" cy="86" r="70" fill="none" stroke="'+color+'" stroke-width="16" ' +
+            'stroke-linecap="round" stroke-dasharray="'+RING_C.toFixed(1)+'" stroke-dashoffset="'+offset.toFixed(1)+'"/>' +
+        '</svg>' +
+        '<div class="ring-mid">' +
+          '<div class="ring-pct'+(o.bigSmall?" sm":"")+'" style="color:'+color+'">'+o.big+'</div>' +
+          '<div class="ring-lbl">'+o.small+'</div>' +
+        '</div>' +
+      '</div></div>' +
+      '<div class="tri">' + (o.tri||[]).map(function(t){
+        return '<div><div class="v'+(t.cls?" "+t.cls:"")+'">'+t.v+'</div><div class="l">'+t.l+'</div></div>';
+      }).join("") + '</div>' +
+    '</div>';
+  }
+
+  // ====== Ahorro: KPIs del período + histórico por año ======
+  function renderAhorro(){
+    var d = state.data;
+    if(!d) return;
+    var anual = esAnual();
+
+    var ahorro = Number(anual ? d.ahorroAnual : d.ahorro) || 0;
+    var sueldo = Number(anual ? d.sueldoAnual : d.sueldo) || 0;
+    var ganancias = Number(anual ? d.gananciasAnual : d.ganancias) || 0;
+    var meta = Number(anual ? d.ahorroPresupuestoAnual : d.ahorroPresupuesto) || 0;
+    var ingresos = sueldo + ganancias;
+
+    // Tasa de ahorro: el KPI estándar de finanzas personales (referencia: 20%).
+    var tasa = pctSeguro(ahorro, ingresos);
+    var cumplimiento = pctSeguro(ahorro, meta);
+
+    var hist = state.historico || [];
+    var acumulado = hist.reduce(function(acc,a){ return acc + (Number(a.ahorro)||0); }, 0);
+
+    var hayMeta = meta > 0;
+    var falta = meta - ahorro;
+
+    $("ahorroHero").innerHTML = ringCard({
+      titulo: "Meta " + sufijoPeriodo(),
+      pct: hayMeta ? cumplimiento : 0,
+      color: "var(--green)",
+      badge: hayMeta ? cumplimiento.toFixed(0) + "% cumplida" : "Sin meta",
+      big: hayMeta ? cumplimiento.toFixed(0) + "%" : money.format(ahorro),
+      bigSmall: !hayMeta,
+      small: hayMeta ? "de tu meta" : "ahorrado",
+      tri: [
+        { v: money.format(ahorro), l: "Ahorrado", cls: ahorro > 0 ? "pos" : "" },
+        { v: hayMeta ? money.format(meta) : "—", l: "Meta" },
+        { v: hayMeta ? money.format(Math.abs(falta)) : "—",
+          l: falta > 0 ? "Falta" : "Superaste",
+          cls: hayMeta ? (falta > 0 ? "neg" : "pos") : "" }
+      ]
+    });
+
+    $("ahorroStats").innerHTML =
+      statCard("Tasa de ahorro", tasa.toFixed(1) + "%", tasa >= 20 ? "pos" : (tasa > 0 ? "" : "neg")) +
+      statCard("Ingresos " + sufijoPeriodo(), money.format(ingresos)) +
+      statCard("Ganancias " + sufijoPeriodo(), money.format(ganancias), ganancias > 0 ? "pos" : "") +
+      statCard("Ahorro acumulado", money.format(acumulado), acumulado > 0 ? "pos" : "");
+
+    var nota;
+    if(ingresos <= 0){
+      nota = 'Aún no hay ingresos registrados en este período, así que no se puede calcular la tasa de ahorro.';
+    } else if(meta > 0 && ahorro >= meta){
+      nota = '¡Vas cumpliendo! Ahorraste <b>'+money.format(ahorro)+'</b> de una meta de <b>'+money.format(meta)+'</b>. Tu tasa de ahorro es <b>'+tasa.toFixed(1)+'%</b> de tus ingresos.';
+    } else if(meta > 0){
+      nota = 'Te faltan <b>'+money.format(meta - ahorro)+'</b> para llegar a tu meta de <b>'+money.format(meta)+'</b>. Tasa de ahorro actual: <b>'+tasa.toFixed(1)+'%</b>.';
+    } else {
+      nota = 'Estás ahorrando el <b>'+tasa.toFixed(1)+'%</b> de tus ingresos. La referencia habitual es 20%. Puedes fijar una meta en la pestaña Presupuesto (fila AHORRO).';
+    }
+    $("ahorroNote").innerHTML = nota;
+
+    renderIngresosMeses();
+    renderAhorroMeses();
+    renderHistoricoAnios();
+  }
+
+  // ====== Patrimonio (hoja Saldos) ======
+  // A diferencia de Movimientos, Saldos no es un ledger: cada fila es el estado
+  // ACTUAL de una cuenta y se edita en el lugar cuando cambia de valor (igual
+  // que un balance de banco, no una lista de transacciones).
+  var SALDO_CAT_HINTS = {
+    "Efectivo": "Plata disponible ya: cuentas corrientes, vista, ahorro. Es lo único que cuenta para el fondo de emergencia.",
+    "Inversión": "Acciones, fondos mutuos, depósitos a plazo.",
+    "Propiedad": "Casas o departamentos, al valor de mercado o de compra.",
+    "Vehículo": "Autos, motos: un valor de referencia (Yapo/Chileautos) sirve.",
+    "Préstamo": "Plata que te deben (fuera del ledger de Daniela y quien más agregues, que ya se suma solo). Cuenta como tuya, pero no es líquida.",
+    "Deuda": "Créditos pendientes: hipotecario, de consumo, tarjetas. Se resta sola del patrimonio."
+  };
+
+  function loadSaldos(){
+    return apiGet({ accion: "saldos" }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      state.saldos = json;
+      renderPatrimonio();
+    }).catch(function(err){
+      $("saldosList").innerHTML = '<div class="empty-note">Error cargando patrimonio: '+err.message+'</div>';
+    });
+  }
+
+  function renderPatrimonio(){
+    var s = state.saldos;
+    if(!s) return;
+
+    var hayFondo = s.fondoEmergenciaMeses !== null;
+    var mesesFondo = hayFondo ? s.fondoEmergenciaMeses : 0;
+    var estFondo = mesesFondo >= 6 ? "ok" : (mesesFondo >= 3 ? "warn" : "over");
+
+    $("patrimonioHero").innerHTML = ringCard({
+      titulo: "Patrimonio neto",
+      pct: Math.min(100, Math.max(0, pctSeguro(s.activos, s.activos + s.pasivos))),
+      color: s.patrimonioNeto >= 0 ? "var(--green)" : "var(--red)",
+      badge: s.cuentas.length ? (s.cuentas.length+" cuenta"+(s.cuentas.length===1?"":"s")) : "Sin cuentas",
+      big: money.format(s.patrimonioNeto),
+      bigSmall: true,
+      small: "activos menos deudas",
+      tri: [
+        { v: money.format(s.activos), l: "Activos", cls: "pos" },
+        { v: money.format(s.pasivos), l: "Deudas", cls: s.pasivos > 0 ? "neg" : "" },
+        { v: hayFondo ? mesesFondo.toFixed(1)+" m" : "—", l: "Fondo emerg.",
+          cls: hayFondo ? (estFondo === "ok" ? "pos" : (estFondo === "over" ? "neg" : "")) : "" }
+      ]
+    });
+
+    $("patrimonioStats").innerHTML = CATEGORIAS_SALDO_CACHE.map(function(cat){
+      var suma = s.cuentas.filter(function(c){ return c.categoria === cat; })
+                           .reduce(function(a,c){ return a + c.propio; }, 0);
+      return statCard(cat, money.format(suma), cat === "Deuda" && suma > 0 ? "neg" : (suma > 0 ? "" : ""));
+    }).join("");
+
+    if(!s.cuentas.length){
+      $("saldosList").innerHTML = '<div class="empty-note">Aún no tienes cuentas cargadas. Suma tus ahorros, inversiones, propiedades, vehículos y deudas para ver tu patrimonio real. Toca "+ Cuenta".</div>';
+      return;
+    }
+
+    $("saldosList").innerHTML = s.cuentas.map(function(c){
+      var esDeuda = c.categoria === "Deuda";
+      var compartida = c.pctPropio < 100;
+      // Las cuentas sin `fila` vienen del ledger de Deudas personales (ver
+      // obtenerSaldos en Code.gs): se muestran acá pero se editan desde la
+      // pestaña Compartidos → Deudas personales, no desde este formulario.
+      var esDelLedger = c.fila === null;
+      return '<div class="cat-row'+(esDelLedger?"":" saldo-row")+'" data-fila="'+c.fila+'"><div class="cat-row-top">' +
+        catIcon(c.categoria) +
+        '<div class="cat-row-body">' +
+        '<div class="cat-top"><span class="cat-name">'+esc(c.cuenta)+'</span>' +
+        '<span class="cat-amount" style="color:'+(esDeuda?"var(--red)":"var(--text)")+'">'+(esDeuda?"−":"")+money.format(c.propio)+'</span></div>' +
+        '<div class="cat-top"><span class="cat-sub">'+esc(c.categoria)+(compartida?' · '+c.pctPropio+'% tuyo':'')+(esDelLedger?' · desde Deudas':'')+'</span>' +
+        (compartida ? '<span class="cat-of">de '+money.format(c.monto)+'</span>' : '') +
+        '</div></div></div></div>';
+    }).join("");
+
+    document.querySelectorAll("#saldosList .saldo-row").forEach(function(el){
+      el.onclick = function(){ openSaldoSheet(Number(el.dataset.fila)); };
+    });
+  }
+
+  var CATEGORIAS_SALDO_CACHE = ["Efectivo","Inversión","Propiedad","Vehículo","Préstamo","Deuda"];
+  var saldoCategoria = "Efectivo";
+  var saldoEditando = null;
+  attachMilesInput($("sMonto"));
+
+  function setSaldoCategoria(cat){
+    saldoCategoria = cat;
+    document.querySelectorAll('#saldoCatTabs button').forEach(function(b){ b.classList.toggle("active", b.dataset.cat === cat); });
+    $("saldoCatHint").textContent = SALDO_CAT_HINTS[cat] || "";
+  }
+  function openSaldoSheet(fila){
+    var c = fila ? (state.saldos.cuentas || []).filter(function(x){ return x.fila === fila; })[0] : null;
+    saldoEditando = c ? c.fila : null;
+    $("saldoForm").reset();
+    setSaldoCategoria(c ? c.categoria : "Efectivo");
+
+    $("saldoSheetTitle").textContent = c ? "Editar cuenta" : "Nueva cuenta";
+    $("saldoSubmitBtn").textContent = c ? "Guardar cambios" : "Guardar cuenta";
+    $("saldoDeleteBtn").style.display = c ? "block" : "none";
+    if(c){
+      $("sCuenta").value = c.cuenta;
+      $("sMonto").value = formatMiles(Math.round(c.monto));
+      $("sPctPropio").value = c.pctPropio;
+      $("sDetalle").value = c.detalle || "";
+    } else {
+      $("sPctPropio").value = "100";
+    }
+    $("saldoBackdrop").classList.add("show");
+    $("saldoSheet").classList.add("show");
+  }
+  function closeSaldoSheet(){
+    $("saldoBackdrop").classList.remove("show");
+    $("saldoSheet").classList.remove("show");
+  }
+  $("addSaldoBtn").onclick = function(){ openSaldoSheet(null); };
+  $("closeSaldoSheet").onclick = closeSaldoSheet;
+  $("saldoBackdrop").onclick = closeSaldoSheet;
+  document.querySelectorAll('#saldoCatTabs button').forEach(function(btn){
+    btn.onclick = function(){ setSaldoCategoria(btn.dataset.cat); };
+  });
+
+  $("saldoForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var cuenta = $("sCuenta").value.trim();
+    var monto = parseMiles($("sMonto").value);
+    if(!cuenta){ showToast("Falta el nombre", "err"); return; }
+    if(!monto || monto <= 0){ showToast("El monto debe ser mayor que 0", "err"); return; }
+
+    var btn = $("saldoSubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    apiPost({
+      accion: "guardarSaldo",
+      fila: saldoEditando,
+      cuenta: cuenta,
+      categoria: saldoCategoria,
+      monto: monto,
+      pctPropio: $("sPctPropio").value || 100,
+      detalle: $("sDetalle").value || ""
+    }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      showToast("Cuenta guardada ✓", "ok");
+      closeSaldoSheet();
+      loadSaldos();
+    }).catch(function(err){
+      showToast("Error: " + err.message, "err");
+    }).finally(function(){
+      btn.disabled = false;
+      btn.textContent = saldoEditando ? "Guardar cambios" : "Guardar cuenta";
+    });
+  });
+
+  $("saldoDeleteBtn").onclick = function(){
+    if(!saldoEditando) return;
+    var c = (state.saldos.cuentas || []).filter(function(x){ return x.fila === saldoEditando; })[0];
+    if(!confirm('¿Eliminar "'+(c ? c.cuenta : "")+'"? No se puede deshacer.')) return;
+    var btn = $("saldoDeleteBtn");
+    btn.disabled = true;
+    btn.textContent = "Eliminando...";
+    apiPost({ accion: "eliminarSaldo", fila: saldoEditando })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        showToast("Cuenta eliminada ✓", "ok");
+        closeSaldoSheet();
+        loadSaldos();
+      })
+      .catch(function(err){ showToast("Error: " + err.message, "err"); })
+      .finally(function(){
+        btn.disabled = false;
+        btn.textContent = "Eliminar esta cuenta";
+      });
+  };
+
+  // ====== Metas ======
+  // El progreso lo calcula el backend leyendo la fuente que corresponde a cada
+  // tipo, así que una meta se mueve sola cuando Angel registra un gasto o un
+  // ahorro: no hay que anotar el avance a mano en ninguna parte.
+  var META_HINTS = {
+    acumular: "Juntar plata para algo. El avance sale solo de todo lo que lleves registrado en el concepto que elijas.",
+    deuda: "Pagar lo que le debes a alguien. El avance sale del saldo de esa persona en Deudas.",
+    reducir: "Bajar el gasto de una categoría. El objetivo es el tope que quieres no pasar en el mes."
+  };
+
+  function loadMetas(){
+    return apiGet({ accion: "metas" }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      state.metas = json.metas;
+      renderMetas();
+    }).catch(function(err){
+      $("metasList").innerHTML = '<div class="empty-note">Error cargando metas: '+err.message+'</div>';
+    });
+  }
+
+  function renderMetas(){
+    var metas = state.metas;
+    if(!metas){ return; }
+    if(!metas.length){
+      $("metasList").innerHTML = '<div class="empty-note">Todavía no tienes metas. Toca "+ Nueva meta" para fijar la primera: un fondo de emergencia, juntar para la casa, o pagar una deuda.</div>';
+      return;
+    }
+
+    $("metasList").innerHTML = metas.map(function(m){
+      var esReducir = m.tipo === "reducir";
+      // En "reducir" el objetivo es un techo: gastar MENOS es ir bien, así que
+      // el estado se lee al revés que en las otras.
+      var pct = pctSeguro(m.actual, m.objetivo);
+      var estado = esReducir ? estadoPct(pct, true) : (pct >= 100 ? "ok" : (pct >= 50 ? "warn" : ""));
+      var color = esReducir ? colorEstado(estado) : (pct >= 100 ? "var(--green)" : "var(--accent)");
+
+      var sub;
+      if(esReducir){
+        sub = money.format(m.actual)+" este mes, de un tope de "+money.format(m.objetivo)+
+              (m.actual > m.objetivo ? " · <b style=\"color:var(--red)\">te pasaste "+money.format(m.actual-m.objetivo)+"</b>"
+                                     : " · te quedan "+money.format(m.objetivo-m.actual));
+      } else if(m.falta <= 0){
+        sub = "¡Cumplida! "+money.format(m.actual)+" de "+money.format(m.objetivo)+".";
+      } else {
+        sub = money.format(m.actual)+" de "+money.format(m.objetivo)+" · faltan "+money.format(m.falta);
+        if(m.necesarioPorMes){
+          sub += " · necesitas <b>"+money.format(m.necesarioPorMes)+"/mes</b> por "+m.mesesRestantes+" "+(m.mesesRestantes===1?"mes":"meses");
+        } else if(m.fecha && m.mesesRestantes !== null && m.mesesRestantes <= 0){
+          sub += " · <b style=\"color:var(--red)\">la fecha ya pasó</b>";
+        }
+      }
+
+      return '<div class="cat-row meta-row" data-fila="'+m.fila+'">' +
+        '<div class="cat-row-top">' + catIcon(m.tipo === "deuda" ? "DEUDAS" : (m.origen || m.nombre)) +
+        '<div class="cat-row-body">' +
+        '<div class="cat-top"><span class="cat-name">'+esc(m.nombre)+'</span>' +
+        '<span class="cat-amount">'+Math.min(999, pct).toFixed(0)+'%</span></div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:'+Math.min(100,pct).toFixed(1)+'%;background:'+color+'"></div></div>' +
+        '<div class="cat-sub" style="margin-top:6px;">'+sub+'</div>' +
+        '</div></div></div>';
+    }).join("");
+
+    document.querySelectorAll("#metasList .meta-row").forEach(function(el){
+      el.onclick = function(){ openMetaSheet(Number(el.dataset.fila)); };
+    });
+  }
+
+  // Gasto mes a mes del año seleccionado, con los meses futuros ya comprometidos
+  // en otro color y la comparación contra el mismo tramo del año anterior.
+  function renderTendencia(){
+    var hist = state.historico || [];
+    var h = hist.filter(function(a){ return a.anio === state.year; })[0];
+    var prev = hist.filter(function(a){ return a.anio === state.year - 1; })[0];
+    $("tendenciaTag").textContent = String(state.year);
+
+    if(!h || !h.gastoMeses){
+      $("tendenciaCard").innerHTML = '<div class="empty-note">Sin datos de gasto para '+state.year+'.</div>';
+      return;
+    }
+    var meses = h.gastoMeses;
+    var hoy = new Date();
+    var corte = (state.year === hoy.getFullYear()) ? hoy.getMonth() : 11;
+    var max = Math.max.apply(null, meses.concat([1]));
+
+    var barras = meses.map(function(v, i){
+      var alto = Math.max(2, (v / max) * 100);
+      var cls = "mm";
+      if(v > 0) cls += (i <= corte) ? " has" : " fut";
+      if(i === corte && state.year === hoy.getFullYear()) cls += " now";
+      return '<div class="'+cls+'" style="height:'+alto+'%" title="'+MESES_LABEL[i]+': '+money.format(v)+'"></div>';
+    }).join("");
+
+    var reales = meses.slice(0, corte + 1).filter(function(v){ return v > 0; });
+    var prom = reales.length ? reales.reduce(function(a,b){ return a+b; }, 0) / reales.length : 0;
+    var acum = meses.slice(0, corte + 1).reduce(function(a,b){ return a+b; }, 0);
+
+    var comparacion = "";
+    if(prev && prev.gastoMeses){
+      var acumPrev = prev.gastoMeses.slice(0, corte + 1).reduce(function(a,b){ return a+b; }, 0);
+      if(acumPrev > 0){
+        var delta = (acum - acumPrev) / acumPrev * 100;
+        var signo = delta >= 0 ? "+" : "−";
+        var colorD = delta > 0 ? "var(--red)" : "var(--green)";
+        comparacion = ' · vs '+(state.year-1)+': <b style="color:'+colorD+'">'+signo+Math.abs(delta).toFixed(1)+'%</b>';
+      }
+    }
+
+    $("tendenciaCard").innerHTML =
+      '<div class="mini-months">' + barras + '</div>' +
+      '<div class="mini-labels">' + MESES_LABEL.map(function(m){ return '<span>'+m.slice(0,1)+'</span>'; }).join("") + '</div>' +
+      '<div class="cat-sub">Promedio '+money.format(prom)+'/mes · acumulado '+money.format(acum)+comparacion+'</div>';
+  }
+
+  // Mini gráfico de barras de los 12 meses del año seleccionado (sueldo + ganancias).
+  function renderIngresosMeses(){
+    var hist = state.historico || [];
+    var anioActual = hist.find(function(a){ return a.anio === state.year; });
+    $("ingresosAnioTag").textContent = String(state.year);
+
+    if(!anioActual || !anioActual.sueldoMeses){
+      $("ingresosMeses").innerHTML = '<div class="empty-note">Sin datos de ingresos para '+state.year+'.</div>';
+      return;
+    }
+    var sueldo = anioActual.sueldoMeses;
+    var ganancias = anioActual.gananciasMeses || sueldo.map(function(){ return 0; });
+    var meses = sueldo.map(function(v, i){ return (Number(v)||0) + (Number(ganancias[i])||0); });
+    var max = Math.max.apply(null, meses.concat([1]));
+
+    $("ingresosMeses").innerHTML =
+      '<div class="mini-months">' + meses.map(function(v, i){
+        var h = Math.max(2, (v / max) * 100);
+        var detalle = money.format(sueldo[i]||0) + ' sueldo';
+        if(ganancias[i] > 0) detalle += ' + ' + money.format(ganancias[i]) + ' ganancias';
+        return '<div class="mm'+(v>0?' has':'')+'" style="height:'+h+'%" title="'+MESES_LABEL[i]+': '+detalle+'"></div>';
+      }).join("") + '</div>' +
+      '<div class="mini-labels">' + MESES_LABEL.map(function(m){
+        return '<span>'+m.slice(0,1)+'</span>';
+      }).join("") + '</div>' +
+      '<div class="cat-sub">Mejor mes: '+money.format(max)+' · Total '+state.year+': '+money.format(meses.reduce(function(a,b){return a+b;},0))+'</div>';
+  }
+
+  // Mini gráfico de barras de los 12 meses del año seleccionado.
+  function renderAhorroMeses(){
+    var hist = state.historico || [];
+    var anioActual = hist.find(function(a){ return a.anio === state.year; });
+    $("ahorroAnioTag").textContent = String(state.year);
+
+    if(!anioActual || !anioActual.ahorroMeses){
+      $("ahorroMeses").innerHTML = '<div class="empty-note">Sin datos de ahorro para '+state.year+'.</div>';
+      return;
+    }
+    var meses = anioActual.ahorroMeses;
+    var max = Math.max.apply(null, meses.concat([1]));
+
+    $("ahorroMeses").innerHTML =
+      '<div class="mini-months">' + meses.map(function(v){
+        var h = Math.max(2, (v / max) * 100);
+        return '<div class="mm'+(v>0?' has':'')+'" style="height:'+h+'%" title="'+money.format(v)+'"></div>';
+      }).join("") + '</div>' +
+      '<div class="mini-labels">' + MESES_LABEL.map(function(m){
+        return '<span>'+m.slice(0,1)+'</span>';
+      }).join("") + '</div>' +
+      '<div class="cat-sub">Mejor mes: '+money.format(max)+' · Total '+state.year+': '+money.format(meses.reduce(function(a,b){return a+b;},0))+'</div>';
+  }
+
+  function renderHistoricoAnios(){
+    var hist = state.historico;
+    if(!hist){
+      $("ahorroPorAnio").innerHTML = '<div class="empty-note">Cargando histórico…</div>';
+      $("gananciasPorAnio").innerHTML = '';
+      return;
+    }
+    if(!hist.length){
+      $("ahorroPorAnio").innerHTML = '<div class="empty-note">Sin datos históricos.</div>';
+      $("gananciasPorAnio").innerHTML = '';
+      return;
+    }
+
+    var acumulado = hist.reduce(function(acc,a){ return acc + (Number(a.ahorro)||0); }, 0);
+    $("ahorroAcumuladoTag").textContent = "total " + money.format(acumulado);
+
+    var maxAhorro = Math.max.apply(null, hist.map(function(a){ return Number(a.ahorro)||0; }).concat([1]));
+    $("ahorroPorAnio").innerHTML = hist.slice().reverse().map(function(a){
+      var ahorro = Number(a.ahorro)||0;
+      var ingresos = (Number(a.sueldo)||0) + (Number(a.ganancias)||0);
+      var tasa = pctSeguro(ahorro, ingresos);
+      return '<div class="year-row">' +
+        '<div class="year-top"><span class="year-label">'+a.anio+'</span><span class="year-amount">'+money.format(ahorro)+'</span></div>' +
+        '<div class="year-track"><div class="year-fill" style="width:'+pctSeguro(ahorro,maxAhorro).toFixed(1)+'%"></div></div>' +
+        '<div class="year-sub"><span>Tasa: '+tasa.toFixed(1)+'%</span><span>Ingresos: '+money.format(ingresos)+'</span><span>Gasto: '+money.format(Number(a.gasto)||0)+'</span></div>' +
+        '</div>';
+    }).join("");
+
+    var maxGan = Math.max.apply(null, hist.map(function(a){ return Number(a.ganancias)||0; }).concat([1]));
+    var totalGan = hist.reduce(function(acc,a){ return acc + (Number(a.ganancias)||0); }, 0);
+    $("gananciasPorAnio").innerHTML = hist.slice().reverse().map(function(a){
+      var g = Number(a.ganancias)||0;
+      return '<div class="year-row">' +
+        '<div class="year-top"><span class="year-label">'+a.anio+'</span><span class="year-amount">'+money.format(g)+'</span></div>' +
+        '<div class="year-track"><div class="year-fill" style="width:'+pctSeguro(g,maxGan).toFixed(1)+'%"></div></div>' +
+        '</div>';
+    }).join("") + '<div class="cat-sub" style="padding-bottom:10px;">Total ganancias extra registradas: <b>'+money.format(totalGan)+'</b></div>';
+  }
+
+  function loadHistorico(){
+    if(state.historico) return Promise.resolve();
+    return apiGet({ accion: "historico" })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        state.historico = json.anios;
+        renderAhorro();
+        renderTendencia();
+      })
+      .catch(function(err){
+        $("ahorroPorAnio").innerHTML = '<div class="empty-note">Error cargando histórico: '+err.message+'</div>';
+      });
+  }
+
+  // ====== Carga de datos ======
+  function loadData(showSpinner){
+    var cached = loadCache();
+    if(cached){ state.data = cached; render(); }
+
+    if(showSpinner) $("refreshBtn").classList.add("spinning");
+    return apiGet({ anio: state.year, mes: MESES[state.monthIdx] })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        state.data = json;
+        saveCache(json);
+        render();
+      })
+      .catch(function(err){
+        showToast("No se pudo actualizar: " + err.message, "err");
+      })
+      .finally(function(){
+        $("refreshBtn").classList.remove("spinning");
+      });
+  }
+
+  function loadListas(){
+    return apiGet({ accion: "listas" }).then(function(json){
+      if(json.ok) state.listas = json;
+      populateSelects();
+    }).catch(function(){});
+  }
+
+  function loadMovimientos(){
+    $("historialList").innerHTML = '<div class="empty-note">Cargando…</div>';
+    // El toggle Mes/Año es compartido con el resto de la app, pero esta función
+    // antes siempre pedía un solo mes (state.monthIdx) sin mirar state.mode: en
+    // modo "Año" el encabezado mostraba el año pero el listado seguía siendo de
+    // un mes suelto, con un conteo de gastos que no cuadraba con "todo el año"
+    // (bug real, 2026-09-27). En modo anual se piden los 12 meses y se combinan.
+    if(esAnual()){
+      var year = state.year;
+      return Promise.all(MESES.map(function(mes){
+        return apiGet({ accion: "movimientos", anio: year, mes: mes });
+      })).then(function(jsons){
+        jsons.forEach(function(json){
+          if(!json.ok) throw new Error(json.error || "Error desconocido");
+        });
+        var todos = [].concat.apply([], jsons.map(function(json){ return json.movimientos; }));
+        todos.sort(function(a,b){
+          return (MESES.indexOf(b.mes)*31 + (b.dia||0)) - (MESES.indexOf(a.mes)*31 + (a.dia||0));
+        });
+        state.movimientos = todos;
+        populateFiltros();
+        renderHistorial();
+      }).catch(function(err){
+        $("historialList").innerHTML = '<div class="empty-note">Error: '+err.message+'</div>';
+      });
+    }
+    return apiGet({ accion: "movimientos", anio: state.year, mes: MESES[state.monthIdx] })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        state.movimientos = json.movimientos;
+        populateFiltros();
+        renderHistorial();
+      })
+      .catch(function(err){
+        $("historialList").innerHTML = '<div class="empty-note">Error: '+err.message+'</div>';
+      });
+  }
+
+  function populateFiltros(){
+    var movs = state.movimientos || [];
+    var catsUsadas = Array.from(new Set(movs.map(function(m){ return m.categoria; }))).sort();
+    var personasUsadas = Array.from(new Set(movs.map(function(m){ return m.persona; }))).sort();
+
+    var catActual = $("filtroCategoria").value;
+    var personaActual = $("filtroPersona").value;
+
+    $("filtroCategoria").innerHTML = '<option value="">Todas las categorías</option>' +
+      catsUsadas.map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join("");
+    $("filtroPersona").innerHTML = '<option value="">Todas las personas</option>' +
+      personasUsadas.map(function(p){ return '<option value="'+esc(p)+'">'+esc(p)+'</option>'; }).join("");
+
+    $("filtroCategoria").value = catsUsadas.indexOf(catActual) !== -1 ? catActual : "";
+    $("filtroPersona").value = personasUsadas.indexOf(personaActual) !== -1 ? personaActual : "";
+  }
+  $("filtroCategoria").onchange = renderHistorial;
+  $("filtroPersona").onchange = renderHistorial;
+
+  function renderHistorial(){
+    var movs = state.movimientos || [];
+    var filtroCat = $("filtroCategoria").value;
+    var filtroPersona = $("filtroPersona").value;
+    if(filtroCat) movs = movs.filter(function(m){ return m.categoria === filtroCat; });
+    if(filtroPersona) movs = movs.filter(function(m){ return m.persona === filtroPersona; });
+
+    $("historialCount").textContent = movs.length + " gastos";
+    var anualView = esAnual();
+    $("historialList").innerHTML = movs.map(function(m){
+      return '<div class="mov-row" data-fila="'+m.fila+'">' + catIcon(m.categoria) +
+        '<div class="mov-body">' +
+        '<div class="mov-top"><span class="mov-name">'+esc(m.categoria)+(m.detalle?' · '+esc(m.detalle):'')+'</span><span class="mov-amount">'+money.format(m.valor)+'</span></div>' +
+        '<div class="mov-sub">'+(anualView?'<span class="pill">'+esc(m.mes)+'</span>':'')+'<span class="pill">Día '+m.dia+'</span><span class="pill">'+esc(m.persona)+'</span>'+(m.banco?'<span class="pill">'+esc(m.banco)+'</span>':'')+'</div>' +
+        '</div><span class="edit-chevron">✎</span></div>';
+    }).join("") || '<div class="empty-note">No hay gastos registrados este período.</div>';
+
+    document.querySelectorAll(".mov-row").forEach(function(row){
+      row.onclick = function(){ openEditSheet(parseInt(row.dataset.fila,10)); };
+    });
+  }
+
+  // ====== Navegación de período ======
+  function shiftPeriod(dir){
+    if(state.mode === "anual"){
+      state.year += dir;
+    } else {
+      state.monthIdx += dir;
+      if(state.monthIdx > 11){ state.monthIdx = 0; state.year++; }
+      if(state.monthIdx < 0){ state.monthIdx = 11; state.year--; }
+    }
+    loadData(true);
+    if(currentView === "viewHistorial") loadMovimientos();
+    // El presupuesto vive por año (2026-09-12): si cambia el año hay que
+    // volver a pedirlo, si no queda mostrando el presupuesto del año anterior.
+    if(currentView === "viewPresupuesto") loadPresupuesto();
+  }
+
+  $("prevBtn").onclick = function(){ shiftPeriod(-1); };
+  $("nextBtn").onclick = function(){ shiftPeriod(1); };
+  $("refreshBtn").onclick = function(){
+    loadData(true);
+    if(currentView === "viewHistorial") loadMovimientos();
+    if(currentView === "viewPresupuesto") loadPresupuesto();
+  };
+
+  // Cambiar Mes/Año solo repintaba Resumen (render()): si el usuario estaba en
+  // Historial o Presupuesto, el encabezado pasaba a mostrar el año pero la
+  // lista/tarjetas se quedaban con los datos del mes que estaba seleccionado
+  // antes — mismo bug de fondo que loadMovimientos() (2026-09-27).
+  function onCambioModo(){
+    render();
+    if(currentView === "viewHistorial") loadMovimientos();
+    if(currentView === "viewPresupuesto") loadPresupuesto();
+  }
+  $("btnMensual").onclick = function(){
+    state.mode = "mensual";
+    $("btnMensual").classList.add("active");
+    $("btnAnual").classList.remove("active");
+    onCambioModo();
+  };
+  $("btnAnual").onclick = function(){
+    state.mode = "anual";
+    $("btnAnual").classList.add("active");
+    $("btnMensual").classList.remove("active");
+    onCambioModo();
+  };
+
+  // ====== Tabs Resumen / Historial ======
+  var currentView = "viewResumen";
+  // El nombre de la pestaña es ahora el título del header (antes decía siempre
+  // "Cuentas Personales", que no aportaba nada estando ya dentro de la app).
+  var VIEW_TITLES = {
+    viewResumen: "Resumen",
+    viewCompartidos: "Compartidos",
+    viewHistorial: "Historial",
+    viewPresupuesto: "Presupuesto",
+    viewAhorro: "Metas"
+  };
+  function switchView(view){
+    currentView = view;
+    $("viewTitle").textContent = VIEW_TITLES[view] || "Resumen";
+    document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+    $(view).classList.add("active");
+    document.querySelectorAll("nav.bottom button[data-view]").forEach(function(b){ b.classList.remove("active"); });
+    document.querySelector('[data-view="'+view+'"]').classList.add("active");
+    if(view === "viewHistorial") loadMovimientos();
+    if(view === "viewCompartidos"){ renderCompartidos(); loadDeudas(); }
+    if(view === "viewPresupuesto") loadPresupuesto();
+    if(view === "viewAhorro"){ renderAhorro(); loadHistorico(); loadMetas(); loadDeudas(); loadSaldos(); }
+  }
+  $("navResumen").onclick = function(){ switchView("viewResumen"); };
+  $("navHistorial").onclick = function(){ switchView("viewHistorial"); };
+  $("navCompartidos").onclick = function(){ switchView("viewCompartidos"); };
+  $("navPresupuesto").onclick = function(){ switchView("viewPresupuesto"); };
+  $("navAhorro").onclick = function(){ switchView("viewAhorro"); };
+  $("compartirBtn").onclick = compartirResumenCompartidos;
+
+  // ====== Sheet / formulario de movimiento ======
+  var currentType = "GASTO";
+  var editingFila = null;
+
+  function populateSelects(){
+    var cats = (state.listas && state.listas.categorias) || [];
+    $("fCategoria").innerHTML = cats.map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join("");
+
+    var personas = (state.listas && state.listas.personas) || PERSONAS;
+    $("fPersona").innerHTML = personas.map(function(p){ return '<option value="'+esc(p)+'">'+esc(p)+'</option>'; }).join("");
+
+    var bancos = (state.listas && state.listas.bancos) || [];
+    $("fBanco").innerHTML = '<option value="">Sin banco</option>' +
+      bancos.map(function(b){ return '<option value="'+esc(b)+'">'+esc(b)+'</option>'; }).join("") +
+      '<option value="__OTRO__">+ Otro banco...</option>';
+  }
+
+  function getBancoValue(){
+    return $("fBanco").value === "__OTRO__" ? $("fBancoOtro").value.trim() : $("fBanco").value;
+  }
+  function setBancoValue(banco){
+    var opciones = Array.from($("fBanco").options).map(function(o){ return o.value.toUpperCase(); });
+    var bancoUpper = (banco || "").toUpperCase();
+    if(banco && opciones.indexOf(bancoUpper) === -1){
+      $("fBanco").value = "__OTRO__";
+      $("fBancoOtro").value = banco;
+      $("fBancoOtro").style.display = "block";
+    } else {
+      $("fBanco").value = banco || "";
+      $("fBancoOtro").style.display = "none";
+      $("fBancoOtro").value = "";
+    }
+  }
+  $("fBanco").onchange = function(){
+    $("fBancoOtro").style.display = $("fBanco").value === "__OTRO__" ? "block" : "none";
+  };
+
+  function openSheet(){
+    editingFila = null;
+    $("typeTabs").style.display = "flex";
+    $("entryForm").reset();
+    $("fBancoOtro").style.display = "none";
+    $("fFecha").value = new Date().toISOString().slice(0,10);
+    $("deleteBtn").style.display = "none";
+    setType("GASTO");
+    $("backdrop").classList.add("show");
+    $("sheet").classList.add("show");
+  }
+
+  function openEditSheet(fila){
+    var mov = (state.movimientos || []).find(function(m){ return m.fila === fila; });
+    if(!mov) return;
+    editingFila = fila;
+    $("typeTabs").style.display = "none";
+    setType("GASTO");
+    $("sheetTitle").textContent = "Editar gasto";
+    $("fCategoria").value = mov.categoria;
+    $("fValor").value = formatMiles(Math.round(Number(mov.valor) || 0));
+    $("fPersona").value = mov.persona;
+    setBancoValue(mov.banco);
+    $("fCuota").value = mov.cuota || 1;
+    $("fDetalle").value = mov.detalle || "";
+    $("fFecha").value = new Date(state.year, state.monthIdx, mov.dia || 1).toISOString().slice(0,10);
+    $("submitBtn").textContent = "Guardar cambios";
+    $("deleteBtn").style.display = "block";
+    $("backdrop").classList.add("show");
+    $("sheet").classList.add("show");
+  }
+
+  $("deleteBtn").onclick = function(){
+    if(!editingFila) return;
+    var mov = (state.movimientos || []).find(function(m){ return m.fila === editingFila; });
+    var nombre = mov ? (mov.categoria + (mov.detalle ? " · " + mov.detalle : "") + " · " + money.format(mov.valor)) : "este gasto";
+    if(!confirm('¿Eliminar "'+nombre+'"? No se puede deshacer.')) return;
+
+    var btn = $("deleteBtn");
+    btn.disabled = true;
+    btn.textContent = "Eliminando...";
+    apiPost({ accion: "eliminarMovimiento", fila: editingFila })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        showToast("Gasto eliminado ✓", "ok");
+        closeSheet();
+        loadData(true);
+        if(currentView === "viewHistorial") loadMovimientos();
+      })
+      .catch(function(err){
+        showToast("Error: " + err.message, "err");
+      })
+      .finally(function(){
+        btn.disabled = false;
+        btn.textContent = "Eliminar este gasto";
+      });
+  };
+
+  function closeSheet(){
+    $("backdrop").classList.remove("show");
+    $("sheet").classList.remove("show");
+  }
+  $("openSheetBtn").onclick = openSheet;
+  $("closeSheet").onclick = closeSheet;
+  $("backdrop").onclick = closeSheet;
+
+  function setType(type){
+    currentType = type;
+    document.querySelectorAll("#typeTabs button").forEach(function(b){ b.classList.toggle("active", b.dataset.type===type); });
+    updateFormFields();
+  }
+  document.querySelectorAll("#typeTabs button").forEach(function(btn){
+    btn.onclick = function(){ setType(btn.dataset.type); };
+  });
+
+  function updateFormFields(){
+    var isGasto = currentType === "GASTO";
+    var isGanancia = currentType === "GANANCIA";
+
+    $("categoriaField").style.display = isGasto ? "block" : "none";
+    $("personaField").style.display = isGasto || isGanancia ? "block" : "none";
+    $("bancoCuotaField").style.display = isGasto ? "flex" : "none";
+
+    $("typeHint").textContent = "";
+
+    if(!editingFila){
+      $("sheetTitle").textContent = {
+        GASTO: "Nuevo gasto",
+        GANANCIA: "Nueva ganancia",
+        SUELDO: "Registrar sueldo",
+        AHORRO: "Registrar ahorro"
+      }[currentType];
+      $("fValor").placeholder = "0";
+      $("submitBtn").textContent = "Guardar";
+    }
+  }
+  updateFormFields();
+  $("fCategoria").addEventListener("change", updateFormFields);
+
+  $("entryForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var valor = parseMiles($("fValor").value);
+    if(!valor || valor <= 0){ showToast("Ingresa un valor válido", "err"); return; }
+
+    var btn = $("submitBtn");
+    btn.disabled = true;
+
+    var promesa;
+    if(editingFila){
+      btn.textContent = "Guardando...";
+      promesa = apiPost({
+        accion: "editarMovimiento",
+        fila: editingFila,
+        categoria: $("fCategoria").value,
+        persona: $("fPersona").value,
+        banco: getBancoValue(),
+        cuota: $("fCuota").value || 1,
+        valor: valor,
+        detalle: $("fDetalle").value || "",
+        // Bug real (2026-08-30): el campo de fecha se mostraba editable pero
+        // nunca se mandaba al guardar, así que cambiar la fecha de un gasto
+        // existente no hacía nada, en silencio.
+        fecha: $("fFecha").value
+      });
+    } else {
+      btn.textContent = "Guardando...";
+      var body = { valor: valor, detalle: $("fDetalle").value || "", fecha: $("fFecha").value };
+      if(currentType === "GASTO"){
+        body.categoria = $("fCategoria").value;
+        body.persona = $("fPersona").value;
+        body.banco = getBancoValue();
+        body.cuota = $("fCuota").value || 1;
+      } else if(currentType === "GANANCIA"){
+        body.categoria = "GANANCIAS";
+        body.persona = $("fPersona").value;
+      } else {
+        body.categoria = currentType; // SUELDO | AHORRO
+      }
+      promesa = apiPost(body);
+    }
+
+    promesa.then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      showToast("Guardado correctamente ✓", "ok");
+      closeSheet();
+      loadData(true);
+      if(currentView === "viewHistorial") loadMovimientos();
+    }).catch(function(err){
+      showToast("Error: " + err.message, "err");
+    }).finally(function(){
+      btn.disabled = false;
+      btn.textContent = editingFila ? "Guardar cambios" : "Guardar";
+    });
+  });
+
+  // ====== Nueva categoría ======
+  attachMilesInput($("catPresupuesto"));
+  attachMilesInput($("presuMontoAnualDirecto"));
+  attachMilesInput($("presuMontoAnual"));
+  attachMilesInput($("fValor"));
+  var catTipoSeleccionado = "VARIABLE";
+  $("addCatBtn").onclick = function(){
+    $("catForm").reset();
+    catTipoSeleccionado = "VARIABLE";
+    document.querySelectorAll('#catForm .type-tabs button').forEach(function(b){ b.classList.toggle("active", b.dataset.tipo==="VARIABLE"); });
+    $("catBackdrop").classList.add("show");
+    $("catSheet").classList.add("show");
+  };
+  $("closeCatSheet").onclick = closeCatSheet;
+  $("catBackdrop").onclick = closeCatSheet;
+  function closeCatSheet(){
+    $("catBackdrop").classList.remove("show");
+    $("catSheet").classList.remove("show");
+  }
+  document.querySelectorAll('#catForm .type-tabs button').forEach(function(btn){
+    btn.onclick = function(){
+      catTipoSeleccionado = btn.dataset.tipo;
+      document.querySelectorAll('#catForm .type-tabs button').forEach(function(b){ b.classList.remove("active"); });
+      btn.classList.add("active");
+    };
+  });
+  $("catForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var nombre = $("catNombre").value.trim();
+    if(!nombre){ showToast("Falta el nombre", "err"); return; }
+    var btn = $("catSubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Creando...";
+    apiPost({
+      accion: "agregarCategoria",
+      nombre: nombre,
+      tipo: catTipoSeleccionado,
+      presupuestoMensual: parseMiles($("catPresupuesto").value),
+      anio: state.year
+    }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      showToast('Categoría "'+nombre+'" creada ✓', "ok");
+      closeCatSheet();
+      loadListas();
+      loadData(true);
+    }).catch(function(err){
+      showToast("Error: " + err.message, "err");
+    }).finally(function(){
+      btn.disabled = false;
+      btn.textContent = "Crear categoría";
+    });
+  });
+
+  // ====== Formulario de metas ======
+  var metaTipo = "acumular";
+  var metaEditando = null;
+  attachMilesInput($("mObjetivo"));
+
+  function opcionesOrigen(tipo){
+    var cats = (state.listas && state.listas.categorias) || [];
+    // GANANCIAS y "Compra de casa" no son categorías de gasto normal (ver
+    // categoriasGasto): no tiene sentido "reducir" ni compararlas contra un
+    // tope mensual. Se excluyen de los dos tipos que sí filtran por gasto.
+    var catsGasto = cats.filter(function(c){ return c !== "GANANCIAS" && c !== "Compra de casa"; });
+    if(tipo === "deuda"){
+      return ((state.deudas && state.deudas.personas) || ["Daniela"]);
+    }
+    if(tipo === "acumular"){
+      // Lo que se puede "acumular" de verdad: el ahorro y "Compra de casa"
+      // (sí es un objetivo real, a diferencia de "reducir"). El resto de
+      // categorías de gasto no tiene sentido como meta de acumulación.
+      var extra = cats.indexOf("Compra de casa") !== -1 ? ["Compra de casa"] : [];
+      return ["AHORRO"].concat(extra);
+    }
+    if(tipo === "reducir"){
+      return catsGasto;
+    }
+    return cats;
+  }
+
+  function setMetaTipo(tipo){
+    metaTipo = tipo;
+    document.querySelectorAll('#metaTipoTabs button').forEach(function(b){
+      b.classList.toggle("active", b.dataset.tipo === tipo);
+    });
+    $("metaTipoHint").textContent = META_HINTS[tipo] || "";
+    $("mOrigenLabel").textContent = tipo === "deuda" ? "¿A quién le debes?"
+                                  : (tipo === "reducir" ? "¿Qué categoría?" : "¿Qué la alimenta?");
+    $("mObjetivoLabel").textContent = tipo === "reducir" ? "Tope mensual ($)" : "Objetivo ($)";
+
+    var actual = $("mOrigen").value;
+    var ops = opcionesOrigen(tipo);
+    $("mOrigen").innerHTML = ops.map(function(o){ return '<option value="'+esc(o)+'">'+esc(o)+'</option>'; }).join("");
+    if(ops.indexOf(actual) !== -1) $("mOrigen").value = actual;
+  }
+
+  function openMetaSheet(fila){
+    var m = fila ? (state.metas || []).filter(function(x){ return x.fila === fila; })[0] : null;
+    metaEditando = m ? m.fila : null;
+    $("metaForm").reset();
+    setMetaTipo(m ? m.tipo : "acumular");
+
+    $("metaSheetTitle").textContent = m ? "Editar meta" : "Nueva meta";
+    $("metaSubmitBtn").textContent = m ? "Guardar cambios" : "Guardar meta";
+    $("metaDeleteBtn").style.display = m ? "block" : "none";
+    if(m){
+      $("mNombre").value = m.nombre;
+      $("mOrigen").value = m.origen;
+      $("mObjetivo").value = formatMiles(Math.round(m.objetivo));
+      $("mFecha").value = m.fecha || "";
+    }
+    $("metaBackdrop").classList.add("show");
+    $("metaSheet").classList.add("show");
+  }
+  function closeMetaSheet(){
+    $("metaBackdrop").classList.remove("show");
+    $("metaSheet").classList.remove("show");
+  }
+  $("addMetaBtn").onclick = function(){ openMetaSheet(null); };
+  $("closeMetaSheet").onclick = closeMetaSheet;
+  $("metaBackdrop").onclick = closeMetaSheet;
+  document.querySelectorAll('#metaTipoTabs button').forEach(function(btn){
+    btn.onclick = function(){ setMetaTipo(btn.dataset.tipo); };
+  });
+
+  $("metaForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var nombre = $("mNombre").value.trim();
+    var objetivo = parseMiles($("mObjetivo").value);
+    if(!nombre){ showToast("Falta el nombre", "err"); return; }
+    if(!objetivo || objetivo <= 0){ showToast("El objetivo debe ser mayor que 0", "err"); return; }
+
+    var btn = $("metaSubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    apiPost({
+      accion: "guardarMeta",
+      fila: metaEditando,
+      nombre: nombre,
+      tipo: metaTipo,
+      objetivo: objetivo,
+      origen: $("mOrigen").value,
+      fecha: $("mFecha").value || ""
+    }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      showToast("Meta guardada ✓", "ok");
+      closeMetaSheet();
+      loadMetas();
+    }).catch(function(err){
+      showToast("Error: " + err.message, "err");
+    }).finally(function(){
+      btn.disabled = false;
+      btn.textContent = metaEditando ? "Guardar cambios" : "Guardar meta";
+    });
+  });
+
+  $("metaDeleteBtn").onclick = function(){
+    if(!metaEditando) return;
+    var m = (state.metas || []).filter(function(x){ return x.fila === metaEditando; })[0];
+    if(!confirm('¿Eliminar la meta "'+(m ? m.nombre : "")+'"? No se puede deshacer.')) return;
+    var btn = $("metaDeleteBtn");
+    btn.disabled = true;
+    btn.textContent = "Eliminando...";
+    apiPost({ accion: "eliminarMeta", fila: metaEditando })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        showToast("Meta eliminada ✓", "ok");
+        closeMetaSheet();
+        loadMetas();
+      })
+      .catch(function(err){ showToast("Error: " + err.message, "err"); })
+      .finally(function(){
+        btn.disabled = false;
+        btn.textContent = "Eliminar esta meta";
+      });
+  };
+
+  // ====== Categorías compartidas con Daniela ======
+  function openCompartidaSheet(){
+    var cats = (state.listas && state.listas.categorias) || [];
+    var actuales = ((state.data && state.data.compartidos && state.data.compartidos.detalle) || [])
+      .map(function(item){ return String(item.nombre).trim().toUpperCase(); });
+
+    $("compartidaChips").innerHTML = cats.map(function(c){
+      var activo = actuales.indexOf(String(c).trim().toUpperCase()) !== -1;
+      return '<button type="button" class="'+(activo?"active":"")+'" data-cat="'+esc(c)+'">'+esc(c)+'</button>';
+    }).join("") || '<div class="empty-note">No hay categorías creadas todavía.</div>';
+
+    document.querySelectorAll('#compartidaChips button').forEach(function(btn){
+      btn.onclick = function(){ btn.classList.toggle("active"); };
+    });
+
+    $("compartidaBackdrop").classList.add("show");
+    $("compartidaSheet").classList.add("show");
+  }
+  function closeCompartidaSheet(){
+    $("compartidaBackdrop").classList.remove("show");
+    $("compartidaSheet").classList.remove("show");
+  }
+  $("editCompartidasBtn").onclick = openCompartidaSheet;
+  $("closeCompartidaSheet").onclick = closeCompartidaSheet;
+  $("compartidaBackdrop").onclick = closeCompartidaSheet;
+
+  $("compartidaGuardarBtn").onclick = function(){
+    var seleccionadas = Array.prototype.map.call(
+      document.querySelectorAll('#compartidaChips button.active'),
+      function(btn){ return btn.dataset.cat; }
+    );
+    var btn = $("compartidaGuardarBtn");
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    apiPost({
+      accion: "guardarCategoriasCompartidas",
+      categorias: seleccionadas
+    }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      showToast("Categorías compartidas actualizadas ✓", "ok");
+      closeCompartidaSheet();
+      loadData(true);
+    }).catch(function(err){
+      showToast("Error: " + err.message, "err");
+    }).finally(function(){
+      btn.disabled = false;
+      btn.textContent = "Guardar";
+    });
+  };
+
+  // ====== Movimiento de deuda ======
+  var DEUDA_HINTS = {
+    preste: "Anota que le prestaste plata: sube lo que te debe.",
+    mePagaron: "Anota que te devolvió plata: baja lo que te debe. No es un gasto ni un ingreso, solo baja el saldo.",
+    debo: "Anota que te prestó plata: sube lo que le debes.",
+    pague: "Anota que le pagaste una deuda: baja lo que le debes y además se registra como gasto en Movimientos (categoría \"Pago deudas\")."
+  };
+  var deudaTipoSeleccionado = "preste";
+  var deudaEditando = null;
+
+  // Sin argumento: nuevo movimiento. Con `mov` (de state.deudas.movimientos):
+  // edita esa fila — arreglo del 2026-08-30, antes solo se podía agregar.
+  function openDeudaSheet(mov){
+    deudaEditando = mov ? mov.fila : null;
+    $("deudaForm").reset();
+    populateDeudaPersonas();
+    $("dPersonaOtra").style.display = "none";
+    $("dPersonaOtra").value = "";
+    deudaTipoSeleccionado = (mov && mov.tipo) || "preste";
+    document.querySelectorAll('#deudaTipoTabs button').forEach(function(b){ b.classList.toggle("active", b.dataset.tipo===deudaTipoSeleccionado); });
+    $("deudaTipoHint").textContent = DEUDA_HINTS[deudaTipoSeleccionado] || "";
+    $("deudaSheetTitle").textContent = mov ? "Editar movimiento" : "Movimiento de deuda";
+    $("deudaSubmitBtn").textContent = mov ? "Guardar cambios" : "Guardar";
+    $("deudaDeleteBtn").style.display = mov ? "block" : "none";
+
+    if(mov){
+      var opciones = Array.from($("dPersona").options).map(function(o){ return o.value; });
+      if(opciones.indexOf(mov.persona) !== -1){
+        $("dPersona").value = mov.persona;
+      } else {
+        $("dPersona").value = "__OTRA__";
+        $("dPersonaOtra").style.display = "block";
+        $("dPersonaOtra").value = mov.persona;
+      }
+      $("dMonto").value = formatMiles(Math.abs(Math.round(mov.monto)));
+      var fecha = new Date(mov.fecha);
+      $("dFecha").value = isNaN(fecha.getTime()) ? new Date().toISOString().slice(0,10) : fecha.toISOString().slice(0,10);
+      $("dDetalle").value = mov.detalle || "";
+    } else {
+      $("dFecha").value = new Date().toISOString().slice(0,10);
+    }
+    $("deudaBackdrop").classList.add("show");
+    $("deudaSheet").classList.add("show");
+  }
+  function closeDeudaSheet(){
+    $("deudaBackdrop").classList.remove("show");
+    $("deudaSheet").classList.remove("show");
+  }
+  $("addDeudaBtn").onclick = function(){ openDeudaSheet(null); };
+  $("closeDeudaSheet").onclick = closeDeudaSheet;
+  $("deudaBackdrop").onclick = closeDeudaSheet;
+  attachMilesInput($("dMonto"));
+  $("dPersona").onchange = function(){
+    $("dPersonaOtra").style.display = $("dPersona").value === "__OTRA__" ? "block" : "none";
+  };
+
+  document.querySelectorAll('#deudaTipoTabs button').forEach(function(btn){
+    btn.onclick = function(){
+      deudaTipoSeleccionado = btn.dataset.tipo;
+      document.querySelectorAll('#deudaTipoTabs button').forEach(function(b){ b.classList.remove("active"); });
+      btn.classList.add("active");
+      $("deudaTipoHint").textContent = DEUDA_HINTS[deudaTipoSeleccionado];
+    };
+  });
+
+  $("deudaForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var persona = $("dPersona").value === "__OTRA__" ? $("dPersonaOtra").value.trim() : $("dPersona").value;
+    if(!persona){ showToast("Ingresa el nombre de la persona", "err"); return; }
+    var monto = parseMiles($("dMonto").value);
+    if(!monto || monto <= 0){ showToast("Ingresa un monto válido", "err"); return; }
+    var btn = $("deudaSubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    apiPost({
+      accion: deudaEditando ? "editarMovimientoDeuda" : "movimientoDeuda",
+      fila: deudaEditando,
+      persona: persona,
+      tipo: deudaTipoSeleccionado,
+      monto: monto,
+      fecha: $("dFecha").value,
+      detalle: $("dDetalle").value.trim()
+    }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      showToast("Movimiento guardado ✓", "ok");
+      closeDeudaSheet();
+      loadDeudas();
+      if(deudaTipoSeleccionado === "pague" || deudaTipoSeleccionado === "mePagaron"){
+        // Ambos tipos también escriben una fila en Movimientos (gasto o
+        // ganancia), así que hay que refrescar lo mismo que refresca un
+        // gasto nuevo — si no, el Resumen/Historial se ven desactualizados
+        // hasta el próximo cambio de pestaña.
+        loadListas();
+        loadData(true);
+        if(currentView === "viewHistorial") loadMovimientos();
+      }
+    }).catch(function(err){
+      showToast("Error: " + err.message, "err");
+    }).finally(function(){
+      btn.disabled = false;
+      btn.textContent = deudaEditando ? "Guardar cambios" : "Guardar";
+    });
+  });
+
+  $("deudaDeleteBtn").onclick = function(){
+    if(!deudaEditando) return;
+    if(!confirm('¿Eliminar este movimiento de deuda? No se puede deshacer.\n\nOjo: si era un "Le pagué", esto NO borra el gasto que se haya creado en Movimientos — hay que borrarlo aparte en Historial si corresponde.')) return;
+    var btn = $("deudaDeleteBtn");
+    btn.disabled = true;
+    btn.textContent = "Eliminando...";
+    apiPost({ accion: "eliminarMovimientoDeuda", fila: deudaEditando })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        showToast("Movimiento eliminado ✓", "ok");
+        closeDeudaSheet();
+        loadDeudas();
+      })
+      .catch(function(err){ showToast("Error: " + err.message, "err"); })
+      .finally(function(){
+        btn.disabled = false;
+        btn.textContent = "Eliminar este movimiento";
+      });
+  };
+
+  // ====== Presupuesto por categoría (editable por mes) ======
+  var presupuestoState = { categorias: [], categoriaActual: null };
+
+  // Sólo trae el desglose por mes (lo que el resumen no incluye); la lista
+  // visible se dibuja desde state.data en renderPresupuestoBars().
+  function loadPresupuesto(){
+    return apiGet({ accion: "presupuesto", anio: state.year }).then(function(json){
+      if(!json.ok) throw new Error(json.error || "Error desconocido");
+      presupuestoState.categorias = json.categorias;
+    }).catch(function(){});
+  }
+
+  function openPresupuestoEdit(categoria){
+    var c = presupuestoState.categorias.find(function(x){ return x.categoria === categoria; });
+    if(!c){
+      showToast("Cargando datos del mes, intenta de nuevo en un segundo", "err");
+      loadPresupuesto();
+      return;
+    }
+    presupuestoState.categoriaActual = categoria;
+    $("presupuestoEditTitle").textContent = "Presupuesto · " + categoria + " · " + state.year;
+    $("presuMontoAnualDirecto").value = formatMiles(c.totalAnual);
+    $("presuMontoAnual").value = "";
+
+    $("presuPorcentajes").innerHTML = MESES.map(function(m, i){
+      return '<div class="presu-item"><span>'+MESES_LABEL[i].slice(0,3)+'</span>' +
+        '<input type="number" class="presu-pct" data-mes="'+m+'" value="'+(100/12).toFixed(1)+'" min="0" max="100" step="0.1"></div>';
+    }).join("");
+
+    $("presuMeses").innerHTML = MESES.map(function(m, i){
+      return '<div class="presu-item"><span>'+MESES_LABEL[i].slice(0,3)+'</span>' +
+        '<input type="text" inputmode="numeric" class="presu-mes" data-mes="'+m+'" value="'+formatMiles(c.meses[m])+'"></div>';
+    }).join("");
+
+    document.querySelectorAll(".presu-mes").forEach(function(inp){
+      attachMilesInput(inp);
+      inp.addEventListener("input", updatePresuTotalAnual);
+    });
+    updatePresuTotalAnual();
+
+    $("presupuestoEditBackdrop").classList.add("show");
+    $("presupuestoEditSheet").classList.add("show");
+  }
+
+  $("closePresupuestoEditSheet").onclick = closePresupuestoEdit;
+  $("presupuestoEditBackdrop").onclick = closePresupuestoEdit;
+  function closePresupuestoEdit(){
+    $("presupuestoEditBackdrop").classList.remove("show");
+    $("presupuestoEditSheet").classList.remove("show");
+  }
+
+  function updatePresuTotalAnual(){
+    var total = 0;
+    document.querySelectorAll(".presu-mes").forEach(function(inp){ total += parseMiles(inp.value); });
+    $("presuTotalAnualBig").textContent = money.format(total);
+  }
+
+  $("presuAplicarAnualDirecto").onclick = function(){
+    var total = parseMiles($("presuMontoAnualDirecto").value);
+    var base = Math.floor(total / 12);
+    var resto = total - base * 12;
+    document.querySelectorAll(".presu-mes").forEach(function(inp, i){
+      inp.value = formatMiles(base + (i < resto ? 1 : 0));
+    });
+    updatePresuTotalAnual();
+  };
+
+  $("presuAplicarDistribucion").onclick = function(){
+    var total = parseMiles($("presuMontoAnual").value);
+    if(total <= 0){ showToast("Ingresa el monto anual total", "err"); return; }
+    var pcts = {}, suma = 0;
+    document.querySelectorAll(".presu-pct").forEach(function(inp){
+      var v = Number(inp.value) || 0;
+      pcts[inp.dataset.mes] = v;
+      suma += v;
+    });
+    if(suma < 99 || suma > 101){
+      showToast("Los porcentajes deben sumar 100% (suman "+suma.toFixed(1)+"%)", "err");
+      return;
+    }
+    document.querySelectorAll(".presu-mes").forEach(function(inp){
+      inp.value = formatMiles(Math.round(total * (pcts[inp.dataset.mes]||0) / 100));
+    });
+    updatePresuTotalAnual();
+  };
+
+  $("presuGuardarBtn").onclick = function(){
+    var meses = {};
+    document.querySelectorAll(".presu-mes").forEach(function(inp){ meses[inp.dataset.mes] = parseMiles(inp.value); });
+    var btn = $("presuGuardarBtn");
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    apiPost({ accion: "guardarPresupuesto", anio: state.year, categoria: presupuestoState.categoriaActual, meses: meses })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || "Error desconocido");
+        showToast("Presupuesto actualizado ✓", "ok");
+        closePresupuestoEdit();
+        loadPresupuesto();
+        loadData(true);
+      }).catch(function(err){
+        showToast("Error: " + err.message, "err");
+      }).finally(function(){
+        btn.disabled = false;
+        btn.textContent = "Guardar presupuesto";
+      });
+  };
+
+  var toastTimer;
+  function showToast(msg, type){
+    var t = $("toast");
+    t.textContent = msg;
+    t.className = "toast show" + (type ? " "+type : "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 3200);
+  }
+
+  // ====== Configuración (URL + token) ======
+  function showSetup(){
+    $("setupUrl").value = API_URL;
+    $("setupToken").value = API_TOKEN;
+    $("setupOverlay").style.display = "flex";
+  }
+  function hideSetup(){ $("setupOverlay").style.display = "none"; }
+
+  $("settingsBtn").onclick = showSetup;
+  $("setupSave").onclick = function(){
+    var url = $("setupUrl").value.trim();
+    var token = $("setupToken").value.trim();
+    if(!url){ showToast("Falta la URL del Web App", "err"); return; }
+    localStorage.setItem("cp_api_url", url);
+    localStorage.setItem("cp_api_token", token);
+    API_URL = url;
+    API_TOKEN = token;
+    hideSetup();
+    loadListas();
+    loadData(true);
+  };
+
+  // ====== Init ======
+  if(!API_URL){
+    showSetup();
+  } else {
+    loadListas();
+    loadData(false);
+  }
+})();
+</script>
+</body>
+</html>
