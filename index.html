@@ -913,8 +913,15 @@
   // ====== CONFIGURACIÓN ======
   // La URL y el token NO viven en el código (así el archivo se puede publicar
   // públicamente sin exponer nada): se piden una vez y quedan en localStorage.
-  var API_URL = localStorage.getItem("cp_api_url") || "";
-  var API_TOKEN = localStorage.getItem("cp_api_token") || "";
+  // Claves con sufijo "_ivan": GitHub Pages sirve ambos dashboards (Angel/Ivan)
+  // bajo el mismo origen "angell1229-arch.github.io" (solo cambia la ruta del
+  // repo), y localStorage se comparte por origen, no por ruta — usar las
+  // mismas claves "cp_api_url"/"cp_api_token" que la app de Angel hacía que
+  // esta app leyera (y pisara) la config de Angel. Detectado y corregido el
+  // 2026-09-28 antes de publicar, comparando con la app de Angel en el mismo
+  // navegador.
+  var API_URL = localStorage.getItem("cp_api_url_ivan") || "";
+  var API_TOKEN = localStorage.getItem("cp_api_token_ivan") || "";
 
   var MESES = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
   var MESES_LABEL = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -3036,8 +3043,8 @@
     var url = $("setupUrl").value.trim();
     var token = $("setupToken").value.trim();
     if(!url){ showToast("Falta la URL del Web App", "err"); return; }
-    localStorage.setItem("cp_api_url", url);
-    localStorage.setItem("cp_api_token", token);
+    localStorage.setItem("cp_api_url_ivan", url);
+    localStorage.setItem("cp_api_token_ivan", token);
     API_URL = url;
     API_TOKEN = token;
     hideSetup();
