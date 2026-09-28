@@ -26,6 +26,11 @@
     --accent:#1c1c1c;
     --accent-2:#000000;
     --accent-soft:#e4e4e4;
+    /* Texto para botones/pastillas con fondo --accent. En claro el fondo es casi
+       negro (blanco encima anda bien); en oscuro --accent se invierte a casi
+       blanco (ver bloque de abajo) y un texto blanco fijo quedaba invisible —
+       bug real reportado por Angel el 2026-09-28 ("no se leen algunas cosas"). */
+    --accent-text:#ffffff;
     /* Escala de negros a propósito (pedido de Angel para la app de Ivan, 2026-09-28):
        nada de verde/ámbar/rojo — el estado (ok/warn/over) se lee por qué tan oscuro
        es el tono, no por el matiz. Los tres pasan AA sobre blanco. */
@@ -52,6 +57,7 @@
       --accent:#e6e6e6;
       --accent-2:#ffffff;
       --accent-soft:#2a2a2a;
+      --accent-text:#0d0d0d;
       /* Mismo criterio invertido: en oscuro, más claro/blanco = más urgente. */
       --mint:#9a9a9a;
       --green:#9a9a9a;
@@ -296,7 +302,7 @@
     position:fixed;right:16px;bottom:calc(78px + var(--safe-bottom));z-index:31;
     border-radius:26px;padding:13px 19px;
     background:linear-gradient(135deg,var(--accent),var(--accent-2));
-    color:#fff;border:none;font-size:14px;font-weight:700;font-family:inherit;line-height:1;
+    color:var(--accent-text);border:none;font-size:14px;font-weight:700;font-family:inherit;line-height:1;
     display:flex;flex-direction:row;align-items:center;gap:7px;
     box-shadow:0 8px 22px rgba(0,0,0,0.38);
     cursor:pointer;flex:none;width:auto;min-height:46px;
@@ -355,7 +361,7 @@
     color:var(--text-dim);padding:9px 8px;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;
     font-family:inherit;
   }
-  .type-tabs button.active{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .type-tabs button.active{border-color:var(--accent);background:var(--accent);color:var(--accent-text);}
   .type-hint{
     font-size:12px;color:var(--text-dim);line-height:1.5;margin:-8px 2px 4px;
   }
@@ -366,7 +372,7 @@
     border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim);
     padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
   }
-  .chip-list button.active{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .chip-list button.active{border-color:var(--accent);background:var(--accent);color:var(--accent-text);}
 
   label{display:block;font-size:12px;font-weight:700;color:var(--text-dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.3px;}
   input,select{
@@ -379,7 +385,7 @@
 
   .submit-btn{
     width:100%;margin-top:20px;padding:14px;border:none;border-radius:14px;
-    background:linear-gradient(160deg,var(--accent),var(--accent-2));color:#fff;
+    background:linear-gradient(160deg,var(--accent),var(--accent-2));color:var(--accent-text);
     font-size:15px;font-weight:700;cursor:pointer;
   }
   .submit-btn:disabled{opacity:.6;}
@@ -410,13 +416,13 @@
   .budget-bar-edit input{flex:1;min-width:0;padding:7px 8px;font-size:12.5px;}
   .budget-bar-save{
     flex:0 0 auto;width:32px;height:32px;border-radius:9px;border:none;
-    background:var(--accent);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    background:var(--accent);color:var(--accent-text);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
   }
   .budget-bar-save:disabled{opacity:.6;}
 
   .share-btn{
     width:100%;margin:0 0 16px;padding:13px;border:none;border-radius:14px;
-    background:linear-gradient(160deg,var(--accent),var(--accent-2));color:#fff;
+    background:linear-gradient(160deg,var(--accent),var(--accent-2));color:var(--accent-text);
     font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;
     display:flex;align-items:center;justify-content:center;gap:8px;
   }
@@ -466,7 +472,7 @@
     z-index:50;opacity:0;transition:all .3s;box-shadow:0 8px 20px rgba(0,0,0,0.25);max-width:88%;text-align:center;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  .toast.err{background:var(--red);color:#fff;}
+  .toast.err{background:var(--red);color:var(--accent-text);}
   .toast.ok{background:var(--green);}
 
   .close-x{position:absolute;top:14px;right:16px;background:var(--surface-2);border:none;width:30px;height:30px;
@@ -512,7 +518,7 @@
       box-shadow:var(--shadow);flex:none;font-size:13.5px;
     }
     nav.bottom button .nav-pill{padding:0;background:none;border-radius:0;}
-    nav.bottom button.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+    nav.bottom button.active{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
     nav.bottom button.active .nav-pill{background:none;}
     nav.bottom .fab{
       position:static;order:-1;margin:0 0 4px;width:100%;height:48px;border-radius:14px;
