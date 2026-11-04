@@ -1179,7 +1179,7 @@
       <div id="compartidoField" class="checkbox-field">
         <label class="checkbox-label">
           <input type="checkbox" id="fCompartidoDaniela">
-          <span>Compartido con Daniela (se reparte 50/50)</span>
+          <span>Compartido con Daniela (50/50: en tus gastos cuenta solo tu mitad)</span>
         </label>
       </div>
 
@@ -1446,7 +1446,7 @@
   // Versión de la app: subirla en CADA cambio de la app (frontend o backend)
   // y anotarla en el "Registro de cambios" de FUNCIONES_APP.md (columna Versión).
   // Se muestra al pie de cada pestaña y en la pantalla de configuración.
-  var APP_VERSION = "2.9";
+  var APP_VERSION = "2.10";
   var APP_VERSION_FECHA = "2026-11-04";
 
   var MESES = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
@@ -3682,7 +3682,9 @@
 
     promesa.then(function(json){
       if(!json.ok) throw new Error(json.error || "Error desconocido");
-      showToast("Guardado correctamente ✓", "ok");
+      showToast(json.compartidoDaniela
+        ? "Guardado ✓ · tu mitad " + money.format(json.valor) + (json.compartidoDaniela.tipo === "debo" ? " (le debes a Daniela)" : " (Daniela te debe)")
+        : "Guardado correctamente ✓", "ok");
       recordarCategoria(categoriaUsada);
       closeSheet();
       loadData(true);
