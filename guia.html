@@ -27,7 +27,7 @@
       code,pre{background:#222a2d;} blockquote{background:#1d2427;} hr{border-color:#2b3336;}
     }
     </style></head><body><div class='barra'><a href='./'>← Volver a la app</a><span>Guía de la app</span></div><main><h1>Guía de la app — Cuentas Ivan</h1>
-<blockquote><b>Versión de la app: 2.8</b> (2026-10-12). Esta guía explica en palabras simples qué muestra la app, qué significa cada cifra y cómo se calcula. Se actualiza con cada versión: lo nuevo está al final, en "Novedades por versión". Se abre desde el botón <b>?</b> de la app o en <code>GUIA_APP.pdf</code>. (El detalle técnico, para quien mantiene la app, está en <code>FUNCIONES_APP.md</code>.)</blockquote>
+<blockquote><b>Versión de la app: 2.9</b> (2026-11-04). Esta guía explica en palabras simples qué muestra la app, qué significa cada cifra y cómo se calcula. Se actualiza con cada versión: lo nuevo está al final, en "Novedades por versión". Se abre desde el botón <b>?</b> de la app o en <code>GUIA_APP.pdf</code>. (El detalle técnico, para quien mantiene la app, está en <code>FUNCIONES_APP.md</code>.)</blockquote>
 <hr>
 <h2>1. Cómo está organizada la app</h2>
 <table><thead><tr><th>Pestaña</th><th>Para qué sirve</th></tr></thead><tbody>
@@ -111,7 +111,17 @@
 <tr><td><b>Me prestó</b></td><td>Le debes más.</td></tr>
 <tr><td><b>Le pagué</b></td><td>Le debes menos (y además se anota como gasto "Pago deudas").</td></tr>
 </tbody></table>
-<p>La tarjeta "Balance de la casa" de Compartidos viene de la app de Angel y hoy siempre marca $0: lo que vale es Deudas.</p>
+<p><b>La pestaña Compartidos</b> junta los gastos que marcaste "Compartido con Daniela" en el mes (o el año):</p>
+<ul>
+<li><b>Quién pagó qué</b>: cada categoría con su <b>total</b>, cuánto pagaste <b>tú</b> (en negrita) y cuánto pagó <b>Daniela</b> (en gris e itálica).
+</li>
+<li><b>La cuenta</b>: a cada uno le toca la mitad → se resta lo que Daniela ya pagó → lo que queda es <b>lo que le falta poner a Daniela</b> (o "Daniela pagó de más" si pagó más que su mitad). El recuadro final dice quién le transfiere a quién.
+</li>
+<li><b>Enviar resumen a Daniela</b> manda una imagen con la misma tabla y la misma cuenta.
+</li>
+<li>Es la cuenta <b>del período</b>. El saldo total con Daniela (sumando todos los meses y lo que ya te pagó) está en la tarjeta de <b>Deudas personales</b>.
+</li></ul>
+<blockquote><b>Ejemplo.</b> En el mes pagaste arriendo $416.000 y Daniela pagó comida $90.000, ambos compartidos. Total $506.000, a cada uno le tocan $253.000. Daniela ya pagó $90.000, así que <b>le falta poner $163.000</b>: Daniela te transfiere $163.000.</blockquote>
 <hr>
 <h2>6. Presupuesto</h2>
 <ul>
@@ -214,7 +224,8 @@
 <hr>
 <h2>14. Novedades por versión</h2>
 <table><thead><tr><th>Versión</th><th>Fecha</th><th>Qué cambió</th></tr></thead><tbody>
-<tr><td><b>2.8</b></td><td>2026-10-12</td><td>Guía de la app (esta), en PDF y dentro de la app con el botón <b>?</b>. El informe en PDF suma los tonos de la app: íconos de categoría, porcentajes en pastillas y barras.</td></tr>
+<tr><td><b>2.9</b></td><td>2026-11-04</td><td>Compartidos más claro: tabla "quién pagó qué" con los gastos compartidos con Daniela y la cuenta paso a paso hasta lo que hay que transferir. La imagen para Daniela y el informe muestran lo mismo.</td></tr>
+<tr><td>2.8</td><td>2026-10-12</td><td>Guía de la app (esta), en PDF y dentro de la app con el botón <b>?</b>. El informe en PDF suma los tonos de la app: íconos de categoría, porcentajes en pastillas y barras.</td></tr>
 <tr><td>2.7</td><td>2026-10-12</td><td>Informe en PDF con diseño "Ejecutivo": portada, cifras en franja, secciones numeradas y recuadro "Lo principal".</td></tr>
 <tr><td>2.6</td><td>2026-10-12</td><td>La proyección del año está lista para considerar temporadas (empieza a usarlas con dos años de datos).</td></tr>
 <tr><td>2.5</td><td>2026-10-12</td><td>Informe en PDF: Completo, Mes, Año y Proyecciones.</td></tr>
